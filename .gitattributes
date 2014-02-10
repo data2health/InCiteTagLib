@@ -1,1 +1,15 @@
 * text=auto !eol
+/.classpath -text
+/.project -text
+.settings/org.eclipse.jdt.core.prefs -text
+.settings/org.eclipse.wst.common.component -text
+.settings/org.eclipse.wst.common.project.facet.core.xml -text
+.settings/org.maven.ide.eclipse.prefs -text
+/pom.xml -text
+src/main/java/InCite/README.txt -text
+src/main/java/edu/uiowa/slis/incite/HTMLCrawler.java -text
+src/main/resources/META-INF/taglib.tld -text
+src/non-packaged-resources/InCite.clay -text
+src/non-packaged-resources/InCite.sql -text
+src/test/java/InCite/README.txt -text
+src/test/resources/README.txt -text
