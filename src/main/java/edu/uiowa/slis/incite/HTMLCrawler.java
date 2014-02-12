@@ -1,8 +1,8 @@
 package edu.uiowa.slis.incite;
 
 import java.net.MalformedURLException;
+import java.net.URL;
 import java.sql.Connection;
-import java.sql.Date;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -21,10 +21,10 @@ import edu.uiowa.crawling.CrawlerThreadFactory;
 import edu.uiowa.crawling.Excluder;
 import edu.uiowa.crawling.URLRequest;
 import edu.uiowa.crawling.filters.domainFilter;
-import edu.uiowa.crawling.filters.levelFilter;
 import edu.uiowa.crawling.filters.textFilter;
 import edu.uiowa.lex.DocumentToken;
 import edu.uiowa.lex.HTMLDocument;
+import edu.uiowa.lex.HTMLLexer;
 import edu.uiowa.lex.token;
 
 public class HTMLCrawler implements Observer {
@@ -42,7 +42,8 @@ public class HTMLCrawler implements Observer {
 		conn = DriverManager.getConnection("jdbc:postgresql://localhost/incite", props);
 		conn.setAutoCommit(false);
 
-		new HTMLCrawler(args);
+//		new HTMLCrawler(args);
+		(new HTMLLexer()).process(new URL(args[1]));
 	}
 	
 	int docCount = 0;

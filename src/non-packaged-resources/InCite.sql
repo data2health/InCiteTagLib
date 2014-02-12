@@ -7,6 +7,15 @@ CREATE TABLE incite.scan (
      , PRIMARY KEY (id)
 );
 
+CREATE TABLE web.document (
+       id INT NOT NULL
+     , url TEXT
+     , title TEXT
+     , length INT
+     , modified TIMESTAMP
+     , PRIMARY KEY (id)
+);
+
 CREATE TABLE incite.author (
        id INT NOT NULL
      , seqnum INT NOT NULL
@@ -17,7 +26,7 @@ CREATE TABLE incite.author (
      , suffix TEXT
      , department TEXT
      , institution TEXT
-     , location TEXT
+     , address TEXT
      , email TEXT
      , PRIMARY KEY (id, seqnum)
      , CONSTRAINT FK_TABLE_2_1 FOREIGN KEY (id)
@@ -125,6 +134,25 @@ CREATE TABLE incite.reference_author (
      , PRIMARY KEY (id, seqnum, authnum)
      , CONSTRAINT FK_reference_author_1 FOREIGN KEY (id, seqnum)
                   REFERENCES incite.reference (id, seqnum) ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+CREATE TABLE web.link (
+       id INT NOT NULL
+     , seqnum INT NOT NULL
+     , url TEXT
+     , PRIMARY KEY (id, seqnum)
+     , CONSTRAINT FK_link_1 FOREIGN KEY (id)
+                  REFERENCES web.document (id) ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+CREATE TABLE web.token (
+       id INT NOT NULL
+     , token TEXT NOT NULL
+     , count INT
+     , frequency DOUBLE PRECISION
+     , PRIMARY KEY (id, token)
+     , CONSTRAINT FK_token_1 FOREIGN KEY (id)
+                  REFERENCES web.document (id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 CREATE TABLE incite.affiliation (
