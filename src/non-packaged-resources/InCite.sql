@@ -1,3 +1,21 @@
+DROP TABLE incite.affiliation;
+DROP TABLE web.doi;
+DROP TABLE web.pmid;
+DROP TABLE web.token;
+DROP TABLE web.link;
+DROP TABLE incite.reference_author;
+DROP TABLE incite.jel_category;
+DROP TABLE incite.pacs_category;
+DROP TABLE incite.ams_category;
+DROP TABLE incite.acm_category;
+DROP TABLE incite.acm_general_term;
+DROP TABLE incite.keyword;
+DROP TABLE incite.abstract;
+DROP TABLE incite.reference;
+DROP TABLE incite.author;
+DROP TABLE web.document;
+DROP TABLE incite.scan;
+
 CREATE TABLE incite.scan (
        id INT NOT NULL
      , source TEXT
@@ -13,8 +31,8 @@ CREATE TABLE web.document (
      , title TEXT
      , length INT
      , modified TIMESTAMP
-     , PRIMARY KEY (id)
-);
+     , PRIMARY KEY (id) USING INDEX TABLESPACE raid1
+) TABLESPACE raid1;
 
 CREATE TABLE incite.author (
        id INT NOT NULL
@@ -140,20 +158,38 @@ CREATE TABLE web.link (
        id INT NOT NULL
      , seqnum INT NOT NULL
      , url TEXT
-     , PRIMARY KEY (id, seqnum)
+     , PRIMARY KEY (id, seqnum) USING INDEX TABLESPACE raid1
      , CONSTRAINT FK_link_1 FOREIGN KEY (id)
                   REFERENCES web.document (id) ON DELETE CASCADE ON UPDATE CASCADE
-);
+) TABLESPACE raid1;
 
 CREATE TABLE web.token (
        id INT NOT NULL
      , token TEXT NOT NULL
      , count INT
      , frequency DOUBLE PRECISION
-     , PRIMARY KEY (id, token)
+     , PRIMARY KEY (id, token) USING INDEX TABLESPACE raid1
      , CONSTRAINT FK_token_1 FOREIGN KEY (id)
                   REFERENCES web.document (id) ON DELETE CASCADE ON UPDATE CASCADE
-);
+) TABLESPACE raid1;
+
+CREATE TABLE web.pmid (
+       id INT NOT NULL
+     , seqnum INT NOT NULL
+     , pmid INT
+     , PRIMARY KEY (id, seqnum) USING INDEX TABLESPACE raid1
+     , CONSTRAINT FK_pmid_1 FOREIGN KEY (id)
+                  REFERENCES web.document (id) ON DELETE CASCADE ON UPDATE CASCADE
+) TABLESPACE raid1;
+
+CREATE TABLE web.doi (
+       id INT NOT NULL
+     , seqnum INT NOT NULL
+     , doi TEXT
+     , PRIMARY KEY (id, seqnum) USING INDEX TABLESPACE raid1
+     , CONSTRAINT FK_doi_1 FOREIGN KEY (id)
+                  REFERENCES web.document (id) ON DELETE CASCADE ON UPDATE CASCADE
+) TABLESPACE raid1;
 
 CREATE TABLE incite.affiliation (
        id INT NOT NULL

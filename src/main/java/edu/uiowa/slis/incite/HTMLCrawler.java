@@ -42,8 +42,8 @@ public class HTMLCrawler implements Observer {
 		conn = DriverManager.getConnection("jdbc:postgresql://localhost/incite", props);
 		conn.setAutoCommit(false);
 
-//		new HTMLCrawler(args);
-		(new HTMLLexer()).process(new URL(args[1]));
+		new HTMLCrawler(args);
+//		(new HTMLLexer()).process(new URL(args[1]));
 	}
 	
 	int docCount = 0;
@@ -108,6 +108,26 @@ public class HTMLCrawler implements Observer {
 			tokenStmt.setDouble(4, token.getFrequency());
 			tokenStmt.execute();
 			tokenStmt.close();
+		}
+		
+		int doiCount = 0;
+		for (String doi : (Vector<String>)theDoc.getDois()) {
+			PreparedStatement doiStmt = conn.prepareStatement("insert into web.doi values (?,?,?)");
+			doiStmt.setInt(1, docCount);
+			doiStmt.setInt(2, doiCount++);
+			doiStmt.setString(3, doi);
+			doiStmt.execute();
+			doiStmt.close();
+		}
+		
+		int pmidCount = 0;
+		for (int pmid : (Vector<Integer>)theDoc.getPmids()) {
+			PreparedStatement pmidStmt = conn.prepareStatement("insert into web.pmid values (?,?,?)");
+			pmidStmt.setInt(1, docCount);
+			pmidStmt.setInt(2, pmidCount++);
+			pmidStmt.setInt(3, pmid);
+			pmidStmt.execute();
+			pmidStmt.close();
 		}
 		
 		conn.commit();
