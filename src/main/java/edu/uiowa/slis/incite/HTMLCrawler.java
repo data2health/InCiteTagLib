@@ -1,5 +1,6 @@
 package edu.uiowa.slis.incite;
 
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.sql.Connection;
@@ -29,7 +30,7 @@ import edu.uiowa.lex.token;
 
 public class HTMLCrawler implements Observer {
     static Logger logger = Logger.getLogger(HTMLCrawler.class);
-	static Crawler theCrawler = new Crawler(new CrawlerThreadFactory(CrawlerThreadFactory.HTML));
+	static Crawler theCrawler = null;
 	static Connection conn = null;
 
 	public static void main (String[] args) throws Exception {
@@ -49,21 +50,53 @@ public class HTMLCrawler implements Observer {
 	int docCount = 0;
 	
 	HTMLCrawler(String[] args) throws Exception {
-		Excluder.addFilter(new domainFilter(".edu"));
-		theCrawler.addFilter(new domainFilter(".edu"));
-		theCrawler.addFilter(new textFilter());
-//		theCrawler.addFilter(new levelFilter(3));
-		theCrawler.addObserver(this);
-		
-		reloadVisited();
-		resetDocCount();
-		
-		Thread.sleep(1000);
-		for (int i = 1; i < args.length; i++)
-			if (args[i].equals("-restart"))
-				reloadQueue();
-			else
-				theCrawler.update(null, new URLRequest(args[i]));
+		if (args[1].equals("-rescan"))
+				rescan(args[2]);
+		else {
+			theCrawler = new Crawler(new CrawlerThreadFactory(CrawlerThreadFactory.HTML));
+			Excluder.addFilter(new domainFilter(".edu"));
+			theCrawler.addFilter(new domainFilter(".edu"));
+			theCrawler.addFilter(new textFilter());
+//			theCrawler.addFilter(new levelFilter(3));
+			theCrawler.addObserver(this);
+
+			reloadVisited();
+			resetDocCount();
+			
+			Thread.sleep(1000);
+			for (int i = 1; i < args.length; i++)
+				if (args[1].equals("-restart"))
+					reloadQueue();
+				else 
+					theCrawler.update(null, new URLRequest(args[i]));
+		}
+	}
+	
+	void rescan(String token) throws SQLException, MalformedURLException, IOException {
+		HTMLLexer theLexer = new HTMLLexer();
+		PreparedStatement scanStmt = conn.prepareStatement("select document.id,document.url from web.document natural join web.token where token = ? and not exists (select id from web.pmid where pmid.id=document.id) and document.id > 343796 order by document.id");
+		scanStmt.setString(1, token);
+		ResultSet scanRS = scanStmt.executeQuery();
+		while (scanRS.next()) {
+			docCount = scanRS.getInt(1);
+			String url = scanRS.getString(2);
+			
+			deleteDocument(docCount);
+			
+			logger.info("scanning " + docCount + ": " + url);
+			try {
+				theLexer.process(new URL(url));
+				storeDocument(new HTMLDocument(url, theLexer.getTitle(), theLexer.getTokens(), theLexer.wordCount(), theLexer.getURLs(), theLexer.getContentLength(), theLexer.getLastModified(), theLexer.getDois(), theLexer.getPmids()));
+			} catch (Exception e) {
+			}
+		}
+	}
+	
+	void deleteDocument(int id) throws SQLException {
+		PreparedStatement scanStmt = conn.prepareStatement("delete from web.document where id = ?");
+		scanStmt.setInt(1, id);
+		scanStmt.execute();
+		scanStmt.close();
 	}
 	
 	public synchronized void update(Observable o, Object obj) {
@@ -157,7 +190,7 @@ public class HTMLCrawler implements Observer {
 	}
 
 	void reloadQueue() throws SQLException, MalformedURLException {
-		PreparedStatement stmt = conn.prepareStatement("select distinct url from web.link where url ~ '^http:.*\\.edu.*/$' and not exists (select url from web.document where document.url = link.url) and length(url) < 200");
+		PreparedStatement stmt = conn.prepareStatement("select distinct url, length(url) from web.link where url ~ '^http:.*\\.edu.*/$' and not exists (select url from web.document where document.url = link.url) and length(url) < 200 order by length(url) limit 200");
 		ResultSet rs = stmt.executeQuery();
 		while (rs.next()) {
 			String url = rs.getString(1);
