@@ -13,6 +13,8 @@ import java.util.Observable;
 import java.util.Observer;
 import java.util.Properties;
 import java.util.Vector;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
@@ -50,9 +52,13 @@ public class HTMLCrawler implements Observer {
 	int docCount = 0;
 	
 	HTMLCrawler(String[] args) throws Exception {
-		if (args[1].equals("-rescan"))
+		if (args[1].equals("-rescan")) {
 				rescan(args[2]);
-		else {
+		} else if (args[1].equals("-pmids")) {
+			rescanPMIDS();
+		} else if (args[1].equals("-dois")) {
+				rescanDOIS();
+		} else {
 			theCrawler = new Crawler(new CrawlerThreadFactory(CrawlerThreadFactory.HTML));
 			Excluder.addFilter(new domainFilter(".edu"));
 			theCrawler.addFilter(new domainFilter(".edu"));
@@ -92,6 +98,127 @@ public class HTMLCrawler implements Observer {
 		}
 	}
 	
+    static Pattern pmidPat = Pattern.compile("[^0-9]*([0-9]+).*$");
+
+    void rescanPMIDS() throws SQLException, MalformedURLException, IOException {
+		HTMLLexer theLexer = new HTMLLexer();
+		PreparedStatement scanStmt = conn.prepareStatement("select distinct id from web.link where url like 'http://www.ncbi.nlm.nih.gov/pubmed/%' order by id");
+		ResultSet scanRS = scanStmt.executeQuery();
+		while (scanRS.next()) {
+			int id = scanRS.getInt(1);
+			int seqnum = -1;
+			logger.info("scanning id: " + id);
+			
+			PreparedStatement seqStmt = conn.prepareStatement("select count(*) from web.pmid where id=?");
+			seqStmt.setInt(1, id);
+			ResultSet seqRS = seqStmt.executeQuery();
+			while (seqRS.next()) {
+				seqnum = seqRS.getInt(1);
+			}
+			seqStmt.close();
+			// seqnum now set as next to be assigned
+			
+			PreparedStatement urlStmt = conn.prepareStatement("select url from web.link where id = ? and url like 'http://www.ncbi.nlm.nih.gov/pubmed/%' order by url");
+			urlStmt.setInt(1, id);
+			ResultSet urlRS = urlStmt.executeQuery();
+			while (urlRS.next()) {
+				String url = urlRS.getString(1);
+            	Matcher theMatcher = pmidPat.matcher(url);
+            	if (theMatcher.find()) {
+            		String pmidString = theMatcher.group(1).trim();
+                    if (pmidString != null && pmidString.length() > 0) {
+                    	try {
+                        	int pmid = Integer.parseInt(theMatcher.group(1));
+    	                	logger.info("\tpmid link: " + pmid + " : " + url);
+    	                	
+    	                	int currentSeq = -1;
+    	        			PreparedStatement seq2Stmt = conn.prepareStatement("select seqnum from web.pmid where id=? and pmid=?");
+    	        			seq2Stmt.setInt(1, id);
+    	        			seq2Stmt.setInt(2, pmid);
+    	        			ResultSet seq2RS = seq2Stmt.executeQuery();
+    	        			while (seq2RS.next()) {
+    	        				currentSeq = seq2RS.getInt(1);
+    	        			}
+    	        			seqStmt.close();
+    	        			
+    	        			if (currentSeq == -1) {
+    	        				logger.info("\t\tadd at " + seqnum);
+    	        				
+    	        				PreparedStatement insStmt = conn.prepareStatement("insert into web.pmid values (?,?,?)");
+    	        				insStmt.setInt(1, id);
+    	        				insStmt.setInt(2, seqnum);
+    	        				insStmt.setInt(3, pmid);
+    	        				insStmt.execute();
+    	        				insStmt.close();
+    	        				
+    	        				seqnum++;
+    	        			}
+    					} catch (NumberFormatException e) {
+    					}            		
+                    }
+            	}
+			}
+			urlStmt.close();
+			conn.commit();
+		}
+		scanStmt.close();
+	}
+	
+    void rescanDOIS() throws SQLException, MalformedURLException, IOException {
+		HTMLLexer theLexer = new HTMLLexer();
+		PreparedStatement scanStmt = conn.prepareStatement("select distinct id from web.link where url like 'http://dx.doi.org/%' order by id");
+		ResultSet scanRS = scanStmt.executeQuery();
+		while (scanRS.next()) {
+			int id = scanRS.getInt(1);
+			int seqnum = -1;
+			logger.info("scanning id: " + id);
+			
+			PreparedStatement seqStmt = conn.prepareStatement("select count(*) from web.doi where id=?");
+			seqStmt.setInt(1, id);
+			ResultSet seqRS = seqStmt.executeQuery();
+			while (seqRS.next()) {
+				seqnum = seqRS.getInt(1);
+			}
+			seqStmt.close();
+			// seqnum now set as next to be assigned
+			
+			PreparedStatement urlStmt = conn.prepareStatement("select url from web.link where id = ? and url like 'http://dx.doi.org/%' order by url");
+			urlStmt.setInt(1, id);
+			ResultSet urlRS = urlStmt.executeQuery();
+			while (urlRS.next()) {
+				String url = urlRS.getString(1);
+            	String doi = url.substring(18);
+            	logger.info("\tdoi link: " + doi + " : " + url);
+
+            	int currentSeq = -1;
+    			PreparedStatement seq2Stmt = conn.prepareStatement("select seqnum from web.doi where id=? and doi=?");
+    			seq2Stmt.setInt(1, id);
+    			seq2Stmt.setString(2, doi);
+    			ResultSet seq2RS = seq2Stmt.executeQuery();
+    			while (seq2RS.next()) {
+    				currentSeq = seq2RS.getInt(1);
+    			}
+    			seqStmt.close();
+    			
+    			if (currentSeq == -1) {
+    				logger.info("\t\tadd at " + seqnum);
+    				
+    				PreparedStatement insStmt = conn.prepareStatement("insert into web.doi values (?,?,?)");
+    				insStmt.setInt(1, id);
+    				insStmt.setInt(2, seqnum);
+    				insStmt.setString(3, doi);
+    				insStmt.execute();
+    				insStmt.close();
+    				
+    				seqnum++;
+    			}
+			}
+			urlStmt.close();
+			conn.commit();
+		}
+		scanStmt.close();
+	}
+	
 	void deleteDocument(int id) throws SQLException {
 		PreparedStatement scanStmt = conn.prepareStatement("delete from web.document where id = ?");
 		scanStmt.setInt(1, id);
@@ -108,8 +235,12 @@ public class HTMLCrawler implements Observer {
 		try {
 			storeDocument(theDoc);
 		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error("SQL error storing document " + theDoc.getURL() + " : " + e);
+			try {
+				conn.rollback();
+			} catch (SQLException e1) {
+				logger.error("SQL error aborting transaction: " + e1);
+			}
 		}
 	}
 	
