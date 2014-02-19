@@ -35,16 +35,21 @@ public class HTMLCrawler implements Observer {
 	static Crawler theCrawler = null;
 	static Connection conn = null;
 
-	public static void main (String[] args) throws Exception {
-		PropertyConfigurator.configure(args[0]);
-
+	static void resetConnection() throws Exception {
         Class.forName("org.postgresql.Driver");
 		Properties props = new Properties();
 		props.setProperty("user", "eichmann");
 		props.setProperty("password", "translational");
-		conn = DriverManager.getConnection("jdbc:postgresql://localhost/incite", props);
+        props.setProperty("sslfactory", "org.postgresql.ssl.NonValidatingFactory");
+        props.setProperty("ssl", "true");
+		conn = DriverManager.getConnection("jdbc:postgresql://neuromancer.icts.uiowa.edu/incite", props);
+//		conn = DriverManager.getConnection("jdbc:postgresql://localhost/incite", props);
 		conn.setAutoCommit(false);
-
+	}
+	
+	public static void main (String[] args) throws Exception {
+		PropertyConfigurator.configure(args[0]);
+		resetConnection();
 		new HTMLCrawler(args);
 //		(new HTMLLexer()).process(new URL(args[1]));
 	}
@@ -238,8 +243,14 @@ public class HTMLCrawler implements Observer {
 			logger.error("SQL error storing document " + theDoc.getURL() + " : " + e);
 			try {
 				conn.rollback();
-			} catch (SQLException e1) {
+			} catch (Exception e1) {
 				logger.error("SQL error aborting transaction: " + e1);
+			} finally {
+				try {
+					resetConnection();
+				} catch (Exception e2) {
+					logger.error("SQL error resetting connection: " + e2);
+				}				
 			}
 		}
 	}
@@ -294,7 +305,8 @@ public class HTMLCrawler implements Observer {
 			pmidStmt.close();
 		}
 		
-		conn.commit();
+		if (docCount % 100 == 0)
+			conn.commit();
 		docCount++;		
 	}
 	
@@ -303,7 +315,7 @@ public class HTMLCrawler implements Observer {
 		ResultSet rs = stmt.executeQuery();
 		while (rs.next()) {
 			String url = rs.getString(1);
-			logger.info("visited: " + url);
+			logger.debug("visited: " + url);
 			URLRequest theRequest = new URLRequest(url);
 			theCrawler.addVisited(theRequest);
 		}
@@ -321,7 +333,8 @@ public class HTMLCrawler implements Observer {
 	}
 
 	void reloadQueue() throws SQLException, MalformedURLException {
-		PreparedStatement stmt = conn.prepareStatement("select distinct url, length(url) from web.link where url ~ '^http:.*\\.edu.*/$' and not exists (select url from web.document where document.url = link.url) and length(url) < 200 order by length(url) limit 200");
+//		PreparedStatement stmt = conn.prepareStatement("select distinct url, length(url) from web.link where url ~ '^http:.*\\.edu.*\\.html$' and not exists (select url from web.document where document.url = link.url) and length(url) < 200 order by length(url) limit 200");
+		PreparedStatement stmt = conn.prepareStatement("select url from web.link where url ~ '^http://[g].*/$' and length(url)<60 limit 1000");
 		ResultSet rs = stmt.executeQuery();
 		while (rs.next()) {
 			String url = rs.getString(1);
