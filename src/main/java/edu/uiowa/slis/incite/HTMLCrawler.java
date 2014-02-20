@@ -265,45 +265,49 @@ public class HTMLCrawler implements Observer {
 		insStmt.execute();
 		insStmt.close();
 		
+		PreparedStatement linkStmt = conn.prepareStatement("insert into web.link values (?,?,?)");
 		int linkCount = 0;
 		for (token url : (Vector<token>)theDoc.getLinks()) {
-			PreparedStatement linkStmt = conn.prepareStatement("insert into web.link values (?,?,?)");
 			linkStmt.setInt(1, docCount);
 			linkStmt.setInt(2, linkCount++);
 			linkStmt.setString(3, url.value);
-			linkStmt.execute();
-			linkStmt.close();
+			linkStmt.addBatch();
 		}
+		linkStmt.executeBatch();
+		linkStmt.close();
 		
+		PreparedStatement tokenStmt = conn.prepareStatement("insert into web.token values (?,?,?,?)");
 		for (DocumentToken token : (Vector<DocumentToken>)theDoc.getTokens()) {
-			PreparedStatement tokenStmt = conn.prepareStatement("insert into web.token values (?,?,?,?)");
 			tokenStmt.setInt(1, docCount);
 			tokenStmt.setString(2, token.getToken());
 			tokenStmt.setInt(3, token.getCount());
 			tokenStmt.setDouble(4, token.getFrequency());
-			tokenStmt.execute();
-			tokenStmt.close();
+			tokenStmt.addBatch();
 		}
+		tokenStmt.executeBatch();
+		tokenStmt.close();
 		
+		PreparedStatement doiStmt = conn.prepareStatement("insert into web.doi values (?,?,?)");
 		int doiCount = 0;
 		for (String doi : (Vector<String>)theDoc.getDois()) {
-			PreparedStatement doiStmt = conn.prepareStatement("insert into web.doi values (?,?,?)");
 			doiStmt.setInt(1, docCount);
 			doiStmt.setInt(2, doiCount++);
 			doiStmt.setString(3, doi);
-			doiStmt.execute();
-			doiStmt.close();
+			doiStmt.addBatch();
 		}
+		doiStmt.executeBatch();
+		doiStmt.close();
 		
+		PreparedStatement pmidStmt = conn.prepareStatement("insert into web.pmid values (?,?,?)");
 		int pmidCount = 0;
 		for (int pmid : (Vector<Integer>)theDoc.getPmids()) {
-			PreparedStatement pmidStmt = conn.prepareStatement("insert into web.pmid values (?,?,?)");
 			pmidStmt.setInt(1, docCount);
 			pmidStmt.setInt(2, pmidCount++);
 			pmidStmt.setInt(3, pmid);
-			pmidStmt.execute();
-			pmidStmt.close();
+			pmidStmt.addBatch();
 		}
+		pmidStmt.executeBatch();
+		pmidStmt.close();
 		
 		if (docCount % 100 == 0)
 			conn.commit();
@@ -334,7 +338,7 @@ public class HTMLCrawler implements Observer {
 
 	void reloadQueue() throws SQLException, MalformedURLException {
 //		PreparedStatement stmt = conn.prepareStatement("select distinct url, length(url) from web.link where url ~ '^http:.*\\.edu.*\\.html$' and not exists (select url from web.document where document.url = link.url) and length(url) < 200 order by length(url) limit 200");
-		PreparedStatement stmt = conn.prepareStatement("select url from web.link where url ~ '^http://[g].*/$' and length(url)<60 limit 1000");
+		PreparedStatement stmt = conn.prepareStatement("select url from web.link where url ~ '^http://[h].*/$' and length(url)<60 limit 1000");
 		ResultSet rs = stmt.executeQuery();
 		while (rs.next()) {
 			String url = rs.getString(1);
