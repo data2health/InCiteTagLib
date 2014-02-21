@@ -338,7 +338,7 @@ public class HTMLCrawler implements Observer {
 
 	void reloadQueue() throws SQLException, MalformedURLException {
 //		PreparedStatement stmt = conn.prepareStatement("select distinct url, length(url) from web.link where url ~ '^http:.*\\.edu.*\\.html$' and not exists (select url from web.document where document.url = link.url) and length(url) < 200 order by length(url) limit 200");
-		PreparedStatement stmt = conn.prepareStatement("select url from web.link where url ~ '^http://[h].*/$' and length(url)<60 limit 1000");
+		PreparedStatement stmt = conn.prepareStatement("select url from web.link where url ~ '^http://[k].*/$' and length(url)<60 limit 1000");
 		ResultSet rs = stmt.executeQuery();
 		while (rs.next()) {
 			String url = rs.getString(1);
