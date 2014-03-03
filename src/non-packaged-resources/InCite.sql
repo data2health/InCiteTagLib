@@ -1,21 +1,3 @@
-DROP TABLE incite.affiliation;
-DROP TABLE web.doi;
-DROP TABLE web.pmid;
-DROP TABLE web.token;
-DROP TABLE web.link;
-DROP TABLE incite.reference_author;
-DROP TABLE incite.jel_category;
-DROP TABLE incite.pacs_category;
-DROP TABLE incite.ams_category;
-DROP TABLE incite.acm_category;
-DROP TABLE incite.acm_general_term;
-DROP TABLE incite.keyword;
-DROP TABLE incite.abstract;
-DROP TABLE incite.reference;
-DROP TABLE incite.author;
-DROP TABLE web.document;
-DROP TABLE incite.scan;
-
 CREATE TABLE incite.scan (
        id INT NOT NULL
      , source TEXT
@@ -25,30 +7,11 @@ CREATE TABLE incite.scan (
      , PRIMARY KEY (id)
 );
 
-CREATE TABLE web.document (
-       id INT NOT NULL
-     , url TEXT
-     , title TEXT
-     , length INT
-     , modified TIMESTAMP
-     , PRIMARY KEY (id) USING INDEX TABLESPACE raid1
-) TABLESPACE raid1;
-
-CREATE TABLE incite.author (
-       id INT NOT NULL
-     , seqnum INT NOT NULL
-     , first_name TEXT
-     , middle_name TEXT
-     , surname TEXT
-     , title TEXT
-     , suffix TEXT
-     , department TEXT
-     , institution TEXT
-     , address TEXT
-     , email TEXT
-     , PRIMARY KEY (id, seqnum)
-     , CONSTRAINT FK_TABLE_2_1 FOREIGN KEY (id)
-                  REFERENCES incite.scan (id) ON DELETE CASCADE ON UPDATE CASCADE
+CREATE TABLE web.institution (
+       did SERIAL NOT NULL
+     , domain TEXT CONSTRAINT UQ_institution_1 UNIQUE
+     , name TEXT
+     , PRIMARY KEY (did)
 );
 
 CREATE TABLE incite.reference (
@@ -70,6 +33,38 @@ CREATE TABLE incite.reference (
      , url TEXT
      , PRIMARY KEY (id, seqnum)
      , CONSTRAINT FK_reference_1 FOREIGN KEY (id)
+                  REFERENCES incite.scan (id) ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+CREATE TABLE web.document (
+       id SERIAL NOT NULL
+     , url TEXT CONSTRAINT UQ_document_1 UNIQUE
+     , title TEXT
+     , length INT
+     , modified TIMESTAMP
+     , indexed TIMESTAMP
+     , visited TIMESTAMP
+     , did INTEGER NOT NULL
+     , suffix TEXT
+     , PRIMARY KEY (id)
+     , CONSTRAINT FK_document_1 FOREIGN KEY (did)
+                  REFERENCES web.institution (did)
+);
+
+CREATE TABLE incite.author (
+       id INT NOT NULL
+     , seqnum INT NOT NULL
+     , first_name TEXT
+     , middle_name TEXT
+     , surname TEXT
+     , title TEXT
+     , suffix TEXT
+     , department TEXT
+     , institution TEXT
+     , address TEXT
+     , email TEXT
+     , PRIMARY KEY (id, seqnum)
+     , CONSTRAINT FK_TABLE_2_1 FOREIGN KEY (id)
                   REFERENCES incite.scan (id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
@@ -158,38 +153,48 @@ CREATE TABLE web.link (
        id INT NOT NULL
      , seqnum INT NOT NULL
      , url TEXT
-     , PRIMARY KEY (id, seqnum) USING INDEX TABLESPACE raid1
+     , PRIMARY KEY (id, seqnum)
      , CONSTRAINT FK_link_1 FOREIGN KEY (id)
                   REFERENCES web.document (id) ON DELETE CASCADE ON UPDATE CASCADE
-) TABLESPACE raid1;
+);
 
 CREATE TABLE web.token (
        id INT NOT NULL
      , token TEXT NOT NULL
      , count INT
      , frequency DOUBLE PRECISION
-     , PRIMARY KEY (id, token) USING INDEX TABLESPACE raid1
+     , PRIMARY KEY (id, token)
      , CONSTRAINT FK_token_1 FOREIGN KEY (id)
                   REFERENCES web.document (id) ON DELETE CASCADE ON UPDATE CASCADE
-) TABLESPACE raid1;
+);
 
 CREATE TABLE web.pmid (
        id INT NOT NULL
      , seqnum INT NOT NULL
      , pmid INT
-     , PRIMARY KEY (id, seqnum) USING INDEX TABLESPACE raid1
+     , PRIMARY KEY (id, seqnum)
      , CONSTRAINT FK_pmid_1 FOREIGN KEY (id)
                   REFERENCES web.document (id) ON DELETE CASCADE ON UPDATE CASCADE
-) TABLESPACE raid1;
+);
 
 CREATE TABLE web.doi (
        id INT NOT NULL
      , seqnum INT NOT NULL
      , doi TEXT
-     , PRIMARY KEY (id, seqnum) USING INDEX TABLESPACE raid1
+     , PRIMARY KEY (id, seqnum)
      , CONSTRAINT FK_doi_1 FOREIGN KEY (id)
                   REFERENCES web.document (id) ON DELETE CASCADE ON UPDATE CASCADE
-) TABLESPACE raid1;
+);
+
+CREATE TABLE web.hyperlink (
+       id INT NOT NULL
+     , seqnum INT NOT NULL
+     , target INT
+     , anchor TEXT
+     , PRIMARY KEY (id, seqnum)
+     , CONSTRAINT FK_TABLE_13_1 FOREIGN KEY (id)
+                  REFERENCES web.document (id) ON DELETE CASCADE ON UPDATE CASCADE
+);
 
 CREATE TABLE incite.affiliation (
        id INT NOT NULL
