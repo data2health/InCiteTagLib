@@ -10,6 +10,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.util.Hashtable;
 import java.util.Observable;
 import java.util.Observer;
 import java.util.Properties;
@@ -40,16 +41,19 @@ public class HTMLCrawler implements Observer {
 	static Crawler theCrawler = null;
 	static Connection conn = null;
 
+	static Hashtable<String,Integer> domainHash = new Hashtable<String, Integer>();
+	static Hashtable<String,Integer> urlHash = new Hashtable<String, Integer>();
+
 	static Connection getConnection() throws Exception {
 		Connection conn = null;
         Class.forName("org.postgresql.Driver");
 		Properties props = new Properties();
 		props.setProperty("user", "eichmann");
 		props.setProperty("password", "translational");
-//        props.setProperty("sslfactory", "org.postgresql.ssl.NonValidatingFactory");
-//        props.setProperty("ssl", "true");
-//		conn = DriverManager.getConnection("jdbc:postgresql://neuromancer.icts.uiowa.edu/incite", props);
-		conn = DriverManager.getConnection("jdbc:postgresql://localhost/incite", props);
+        props.setProperty("sslfactory", "org.postgresql.ssl.NonValidatingFactory");
+        props.setProperty("ssl", "true");
+		conn = DriverManager.getConnection("jdbc:postgresql://neuromancer.icts.uiowa.edu/incite", props);
+//		conn = DriverManager.getConnection("jdbc:postgresql://localhost/incite", props);
 		conn.setAutoCommit(false);
 		return conn;
 	}
@@ -99,7 +103,8 @@ public class HTMLCrawler implements Observer {
 		} else if (args[1].equals("-dois")) {
 				rescanDOIS();
 		} else {
-			PooledGenerator theStorer = new PooledGenerator(5, new ConnectionFactory());
+			PooledGenerator theStorer = new PooledGenerator(10, new ConnectionFactory());
+			theStorer.setQueueLength(50);
 			
 			theCrawler = new Crawler(new CrawlerThreadFactory(CrawlerThreadFactory.HTML));
 			Excluder.addFilter(new domainFilter(".edu"));
@@ -306,7 +311,7 @@ public class HTMLCrawler implements Observer {
 
 	void reloadQueue() throws SQLException, MalformedURLException {
 //		PreparedStatement stmt = conn.prepareStatement("select distinct url, length(url) from web.link where url ~ '^http:.*\\.edu.*\\.html$' and not exists (select url from web.document where document.url = link.url) and length(url) < 200 order by length(url) limit 200");
-		PreparedStatement stmt = conn.prepareStatement("select id, url from web.document where url ~ '^http://.*\\.edu.*/$' and indexed is null and length(url)<60 limit 1000");
+		PreparedStatement stmt = conn.prepareStatement("select id, url from web.document where url ~ '^http://a.*\\.edu.*/$' and indexed is null and length(url)<60 limit 1000");
 		ResultSet rs = stmt.executeQuery();
 		while (rs.next()) {
 			int ID = rs.getInt(1);
@@ -351,7 +356,7 @@ public class HTMLCrawler implements Observer {
 					try {
 						theCrawler.update(this, new URLRequest(newLink.getID(), newLink.getUrl(), theDoc.getLevel() + 1));
 					} catch (MalformedURLException e) {
-						logger.error("malformed url for queue: " + newLink.getUrl());
+						logger.debug("malformed url for queue: " + newLink.getUrl());
 					}
 				}	
 			} catch (SQLException e) {
@@ -401,61 +406,76 @@ public class HTMLCrawler implements Observer {
 
 				logger.debug("domain name: " + domainname);
 				logger.debug("suffix: " + suffix);
-				try {
-					PreparedStatement insert = conn.prepareStatement("insert into web.institution(domain) values(?)", Statement.RETURN_GENERATED_KEYS);
-					insert.setString(1, domainname);
-					insert.execute();
-					ResultSet rs = insert.getGeneratedKeys();
-					while (rs.next()) {
-						did = rs.getInt(1);
-						logger.debug("\tdid: " + did);
-					}
-				} catch (SQLException e) {
-					if (e.getSQLState().equals("23505")) {
-						conn.rollback();
-						PreparedStatement select = conn.prepareStatement("select did from web.institution where domain = ?");
-						select.setString(1, domainname);
-						ResultSet rs = select.executeQuery();
+				
+				if (domainHash.containsKey(domainname)) {
+					did = domainHash.get(domainname);
+					logger.debug("\tcached did: " + did);
+				} else {
+					try {
+						PreparedStatement insert = conn.prepareStatement("insert into web.institution(domain) values(?)", Statement.RETURN_GENERATED_KEYS);
+						insert.setString(1, domainname);
+						insert.execute();
+						ResultSet rs = insert.getGeneratedKeys();
 						while (rs.next()) {
 							did = rs.getInt(1);
-							logger.debug("\texisting id: " + did);
+							logger.debug("\tdid: " + did);
 						}
-						
-					} else {
-						e.printStackTrace();				
+					} catch (SQLException e) {
+						if (e.getSQLState().equals("23505")) {
+							conn.rollback();
+							PreparedStatement select = conn.prepareStatement("select did from web.institution where domain = ?");
+							select.setString(1, domainname);
+							ResultSet rs = select.executeQuery();
+							while (rs.next()) {
+								did = rs.getInt(1);
+								logger.debug("\texisting id: " + did);
+							}
+							
+						} else {
+							e.printStackTrace();				
+						}
+					} finally {
+						conn.commit();
 					}
-				} finally {
-					conn.commit();
+
+					domainHash.put(domainname, did);
 				}
 
 				logger.debug("link url: " + link.getUrl());
-				try {
-					PreparedStatement insert = conn.prepareStatement("insert into web.document(url,did,suffix) values(?,?,?)", Statement.RETURN_GENERATED_KEYS);
-					insert.setString(1, link.getUrl());
-					insert.setInt(2, did);
-					insert.setString(3, suffix);
-					insert.execute();
-					ResultSet rs = insert.getGeneratedKeys();
-					while (rs.next()) {
-						link.setID(rs.getInt(1));
-						logger.debug("\tid: " + link.getID());
-					}
-				} catch (SQLException e) {
-					if (e.getSQLState().equals("23505")) {
-						conn.rollback();
-						PreparedStatement select = conn.prepareStatement("select id from web.document where url = ?");
-						select.setString(1, link.getUrl());
-						ResultSet rs = select.executeQuery();
+				if (urlHash.containsKey(link.getUrl())) {
+					link.setID(urlHash.get(link.getUrl()));
+					logger.debug("\tcached id: " + link.getID());
+				} else {
+					try {
+						PreparedStatement insert = conn.prepareStatement("insert into web.document(url,did,suffix) values(?,?,?)", Statement.RETURN_GENERATED_KEYS);
+						insert.setString(1, link.getUrl());
+						insert.setInt(2, did);
+						insert.setString(3, suffix);
+						insert.execute();
+						ResultSet rs = insert.getGeneratedKeys();
 						while (rs.next()) {
 							link.setID(rs.getInt(1));
-							logger.debug("\texisting id: " + link.getID());
+							logger.debug("\tid: " + link.getID());
 						}
-						
-					} else {
-						e.printStackTrace();				
+					} catch (SQLException e) {
+						if (e.getSQLState().equals("23505")) {
+							conn.rollback();
+							PreparedStatement select = conn.prepareStatement("select id from web.document where url = ?");
+							select.setString(1, link.getUrl());
+							ResultSet rs = select.executeQuery();
+							while (rs.next()) {
+								link.setID(rs.getInt(1));
+								logger.debug("\texisting id: " + link.getID());
+							}
+							
+						} else {
+							e.printStackTrace();				
+						}
+					} finally {
+						conn.commit();
 					}
-				} finally {
-					conn.commit();
+
+					urlHash.put(link.getUrl(), link.getID());
 				}
 			}
 		}
