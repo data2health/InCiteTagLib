@@ -41,10 +41,10 @@ public class HTMLCrawler implements Observer {
 		Properties props = new Properties();
 		props.setProperty("user", "eichmann");
 		props.setProperty("password", "translational");
-//        props.setProperty("sslfactory", "org.postgresql.ssl.NonValidatingFactory");
-//        props.setProperty("ssl", "true");
-//		conn = DriverManager.getConnection("jdbc:postgresql://neuromancer.icts.uiowa.edu/incite", props);
-		conn = DriverManager.getConnection("jdbc:postgresql://localhost/incite", props);
+        props.setProperty("sslfactory", "org.postgresql.ssl.NonValidatingFactory");
+        props.setProperty("ssl", "true");
+		conn = DriverManager.getConnection("jdbc:postgresql://neuromancer.icts.uiowa.edu/incite", props);
+//		conn = DriverManager.getConnection("jdbc:postgresql://localhost/incite", props);
 		conn.setAutoCommit(false);
 		return conn;
 	}
@@ -101,7 +101,7 @@ public class HTMLCrawler implements Observer {
 			
 			theCrawler = new Crawler(new CrawlerThreadFactory(CrawlerThreadFactory.HTML), false);
 			Excluder.addFilter(new domainFilter(".edu"));
-			theCrawler.addFilter(new domainFilter("uiowa.edu"));
+			theCrawler.addFilter(new domainFilter(".edu"));
 			theCrawler.addFilter(new textFilter(true));
 			theCrawler.addFilter(new pathLengthFilter(10));
 			theCrawler.addFilter(new queryLengthFilter());
@@ -338,7 +338,7 @@ public class HTMLCrawler implements Observer {
 
 	void reloadQueue() throws SQLException, MalformedURLException {
 //		PreparedStatement stmt = conn.prepareStatement("select distinct url, length(url) from web.link where url ~ '^http:.*\\.edu.*\\.html$' and not exists (select url from web.document where document.url = link.url) and length(url) < 200 order by length(url) limit 200");
-		PreparedStatement stmt = conn.prepareStatement("select id, url from web.document where url ~ '^https?://.*\\.uiowa\\.edu.*/$' and indexed is null and response_code is null and length(url)<60 limit 500");
+		PreparedStatement stmt = conn.prepareStatement("select id, url from web.document where url ~ '^https?://.*\\.edu.*/$' and indexed is null and response_code is null and length(url)<60 limit 500");
 		ResultSet rs = stmt.executeQuery();
 		while (rs.next()) {
 			int ID = rs.getInt(1);
