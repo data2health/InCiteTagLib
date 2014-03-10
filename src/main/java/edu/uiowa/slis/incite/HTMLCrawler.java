@@ -24,6 +24,7 @@ import edu.uiowa.crawling.Excluder;
 import edu.uiowa.crawling.URLRequest;
 import edu.uiowa.crawling.filters.domainFilter;
 import edu.uiowa.crawling.filters.pathLengthFilter;
+import edu.uiowa.crawling.filters.queryLengthFilter;
 import edu.uiowa.crawling.filters.textFilter;
 import edu.uiowa.lex.HTMLDocument;
 import edu.uiowa.lex.HTMLLexer;
@@ -40,10 +41,10 @@ public class HTMLCrawler implements Observer {
 		Properties props = new Properties();
 		props.setProperty("user", "eichmann");
 		props.setProperty("password", "translational");
-        props.setProperty("sslfactory", "org.postgresql.ssl.NonValidatingFactory");
-        props.setProperty("ssl", "true");
-		conn = DriverManager.getConnection("jdbc:postgresql://neuromancer.icts.uiowa.edu/incite", props);
-//		conn = DriverManager.getConnection("jdbc:postgresql://localhost/incite", props);
+//        props.setProperty("sslfactory", "org.postgresql.ssl.NonValidatingFactory");
+//        props.setProperty("ssl", "true");
+//		conn = DriverManager.getConnection("jdbc:postgresql://neuromancer.icts.uiowa.edu/incite", props);
+		conn = DriverManager.getConnection("jdbc:postgresql://localhost/incite", props);
 		conn.setAutoCommit(false);
 		return conn;
 	}
@@ -88,6 +89,8 @@ public class HTMLCrawler implements Observer {
 	HTMLCrawler(String[] args) throws Exception {
 		if (args[1].equals("-rescan")) {
 				rescan(args[2]);
+		} else if (args[1].equals("-reset")) {
+					reset();
 		} else if (args[1].equals("-pmids")) {
 			rescanPMIDS();
 		} else if (args[1].equals("-dois")) {
@@ -96,11 +99,12 @@ public class HTMLCrawler implements Observer {
 			PooledGenerator theStorer = new PooledGenerator(10, new ConnectionFactory());
 			theStorer.setQueueLength(50);
 			
-			theCrawler = new Crawler(new CrawlerThreadFactory(CrawlerThreadFactory.HTML));
+			theCrawler = new Crawler(new CrawlerThreadFactory(CrawlerThreadFactory.HTML), false);
 			Excluder.addFilter(new domainFilter(".edu"));
-			theCrawler.addFilter(new domainFilter(".edu"));
-			theCrawler.addFilter(new textFilter());
+			theCrawler.addFilter(new domainFilter("uiowa.edu"));
+			theCrawler.addFilter(new textFilter(true));
 			theCrawler.addFilter(new pathLengthFilter(10));
+			theCrawler.addFilter(new queryLengthFilter());
 //			theCrawler.addFilter(new levelFilter(3));
 			theCrawler.addObserver(theStorer);
 			
@@ -118,7 +122,33 @@ public class HTMLCrawler implements Observer {
 				else 
 					theCrawler.update(null, new URLRequest(args[i]));
 			
+			theCrawler.initiate();
 		}
+	}
+	
+	void reset() throws SQLException {
+		logger.info("resetting database");
+		PreparedStatement resetStmt = conn.prepareStatement("truncate web.institution cascade");
+		resetStmt.execute();
+		resetStmt.close();
+		
+		PreparedStatement resetInstStmt = conn.prepareStatement("alter sequence web.institution_did_seq restart with 1");
+		resetInstStmt.execute();
+		resetInstStmt.close();
+		
+		PreparedStatement instStmt = conn.prepareStatement("insert into web.institution(domain) values ('uiowa.edu')");
+		instStmt.execute();
+		instStmt.close();
+		
+		PreparedStatement resetDocStmt = conn.prepareStatement("alter sequence web.document_id_seq restart with 1");
+		resetDocStmt.execute();
+		resetDocStmt.close();
+		
+		PreparedStatement docStmt = conn.prepareStatement("insert into web.document(url,did) values ('http://www.uiowa.edu/', 1)");
+		docStmt.execute();
+		docStmt.close();
+		
+		conn.commit();
 	}
 	
 	void rescan(String token) throws SQLException, MalformedURLException, IOException {
@@ -308,7 +338,7 @@ public class HTMLCrawler implements Observer {
 
 	void reloadQueue() throws SQLException, MalformedURLException {
 //		PreparedStatement stmt = conn.prepareStatement("select distinct url, length(url) from web.link where url ~ '^http:.*\\.edu.*\\.html$' and not exists (select url from web.document where document.url = link.url) and length(url) < 200 order by length(url) limit 200");
-		PreparedStatement stmt = conn.prepareStatement("select id, url from web.document where url ~ '^http://c.*\\.edu.*/$' and indexed is null and length(url)<60 limit 2000");
+		PreparedStatement stmt = conn.prepareStatement("select id, url from web.document where url ~ '^https?://.*\\.uiowa\\.edu.*/$' and indexed is null and response_code is null and length(url)<60 limit 500");
 		ResultSet rs = stmt.executeQuery();
 		while (rs.next()) {
 			int ID = rs.getInt(1);

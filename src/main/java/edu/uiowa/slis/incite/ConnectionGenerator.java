@@ -59,9 +59,15 @@ public class ConnectionGenerator extends Generator {
 				logger.error("SQL error aborting transaction: " + e1);
 			} finally {
 				try {
+					conn.close();
 					conn = HTMLCrawler.getConnection();
 				} catch (Exception e2) {
 					logger.error("SQL error resetting connection: " + e2);
+					try {
+						conn = HTMLCrawler.getConnection();
+					} catch (Exception e1) {
+						logger.error("SQL error resetting connection: " + e1);
+					}
 				}				
 			}
 		}
@@ -173,11 +179,12 @@ public class ConnectionGenerator extends Generator {
 	}
 	
 	void storeDocument(HTMLDocument theDoc) throws SQLException {
-		PreparedStatement insStmt = conn.prepareStatement("update web.document set title = ?, length = ?, modified = ?, indexed = now() where id = ?");
+		PreparedStatement insStmt = conn.prepareStatement("update web.document set title = ?, length = ?, modified = ?, indexed = now(), response_code = ? where id = ?");
 		insStmt.setString(1, theDoc.getTitle());
 		insStmt.setInt(2, theDoc.getContentLength());
 		insStmt.setTimestamp(3, new Timestamp(theDoc.getLastModified()));
-		insStmt.setInt(4, theDoc.getID());
+		insStmt.setInt(4, theDoc.getResponseCode());
+		insStmt.setInt(5, theDoc.getID());
 		insStmt.execute();
 		insStmt.close();
 		
