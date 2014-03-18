@@ -46,10 +46,19 @@ public class HTMLCrawler implements Observer {
 		conn = DriverManager.getConnection("jdbc:postgresql://neuromancer.icts.uiowa.edu/incite", props);
 //		conn = DriverManager.getConnection("jdbc:postgresql://localhost/incite", props);
 		conn.setAutoCommit(false);
+        execute(conn, "set session enable_seqscan = off");
+        execute(conn, "set session random_page_cost = 1");
 		return conn;
 	}
 	
-	public static void main (String[] args) throws Exception {
+    static void execute(Connection conn, String statement) throws SQLException {
+        logger.info("executing " + statement + "...");
+        PreparedStatement stmt = conn.prepareStatement(statement);
+        stmt.executeUpdate();
+        stmt.close();
+    }
+
+    public static void main (String[] args) throws Exception {
 		PropertyConfigurator.configure(args[0]);
 		conn = getConnection();
 //		testing(args[1]);
@@ -338,7 +347,8 @@ public class HTMLCrawler implements Observer {
 
 	void reloadQueue() throws SQLException, MalformedURLException {
 //		PreparedStatement stmt = conn.prepareStatement("select distinct url, length(url) from web.link where url ~ '^http:.*\\.edu.*\\.html$' and not exists (select url from web.document where document.url = link.url) and length(url) < 200 order by length(url) limit 200");
-		PreparedStatement stmt = conn.prepareStatement("select id, url from web.document where url ~ '^https?://.*\\.edu.*/$' and indexed is null and response_code is null and length(url)<60 limit 500");
+//		PreparedStatement stmt = conn.prepareStatement("select id, url from web.document where url ~ '^https?://a.*\\.edu.*/$' and indexed is null and response_code is null and length(url)<60 limit 500");
+		PreparedStatement stmt = conn.prepareStatement("select id, url from web.document,web.document_type where document.suffix=document_type.suffix and type='hypertext' and indexed is null and url ~ '^https?://.*\\.edu.*' limit 5000");
 		ResultSet rs = stmt.executeQuery();
 		while (rs.next()) {
 			int ID = rs.getInt(1);
