@@ -127,11 +127,15 @@ public class HTMLCrawler implements Observer {
 			Thread.sleep(1000);
 			for (int i = 1; i < args.length; i++)
 				if (args[1].equals("-restart"))
-					reloadQueue();
+					reloadQueue(100000);
 				else 
 					theCrawler.update(null, new URLRequest(args[i]));
 			
 			theCrawler.initiate();
+
+//			for (int i = 1; i < args.length; i++)
+//				if (args[1].equals("-restart"))
+//					reloadQueue(1000000);
 		}
 	}
 	
@@ -345,10 +349,10 @@ public class HTMLCrawler implements Observer {
 		stmt.close();
 	}
 
-	void reloadQueue() throws SQLException, MalformedURLException {
+	void reloadQueue(int amount) throws SQLException, MalformedURLException {
 //		PreparedStatement stmt = conn.prepareStatement("select distinct url, length(url) from web.link where url ~ '^http:.*\\.edu.*\\.html$' and not exists (select url from web.document where document.url = link.url) and length(url) < 200 order by length(url) limit 200");
-//		PreparedStatement stmt = conn.prepareStatement("select id, url from web.document where url ~ '^https?://a.*\\.edu.*/$' and indexed is null and response_code is null and length(url)<60 limit 500");
-		PreparedStatement stmt = conn.prepareStatement("select id, url from web.document,web.document_type where document.suffix=document_type.suffix and type='hypertext' and indexed is null and url ~ '^https?://.*\\.edu.*' limit 5000");
+//		PreparedStatement stmt = conn.prepareStatement("select id, url from web.document where url ~ '^https?://w.*\\.edu.*/$' and indexed is null and response_code is null and length(url)<60 limit 500");
+		PreparedStatement stmt = conn.prepareStatement("select id, url from web.document,web.document_type where document.suffix=document_type.suffix and type='hypertext' and indexed is null and did != 6729 and url ~ '^https?://[^/]*\\.edu.*' limit " + amount);
 		ResultSet rs = stmt.executeQuery();
 		while (rs.next()) {
 			int ID = rs.getInt(1);
