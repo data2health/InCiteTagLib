@@ -52,7 +52,7 @@ public class HTMLCrawler implements Observer {
 	}
 	
     static void execute(Connection conn, String statement) throws SQLException {
-        logger.info("executing " + statement + "...");
+        logger.debug("executing " + statement + "...");
         PreparedStatement stmt = conn.prepareStatement(statement);
         stmt.executeUpdate();
         stmt.close();
