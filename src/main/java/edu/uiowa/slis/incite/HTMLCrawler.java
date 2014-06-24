@@ -34,6 +34,8 @@ public class HTMLCrawler implements Observer {
     static Logger logger = Logger.getLogger(HTMLCrawler.class);
 	static Crawler theCrawler = null;
 	static Connection conn = null;
+	
+	static boolean cleanup = false;
 
 	static Connection getConnection() throws Exception {
 		Connection conn = null;
@@ -46,8 +48,8 @@ public class HTMLCrawler implements Observer {
 		conn = DriverManager.getConnection("jdbc:postgresql://neuromancer.icts.uiowa.edu/incite", props);
 //		conn = DriverManager.getConnection("jdbc:postgresql://localhost/incite", props);
 		conn.setAutoCommit(false);
-        execute(conn, "set session enable_seqscan = off");
-        execute(conn, "set session random_page_cost = 1");
+//        execute(conn, "set session enable_seqscan = off");
+//        execute(conn, "set session random_page_cost = 1");
 		return conn;
 	}
 	
@@ -57,7 +59,6 @@ public class HTMLCrawler implements Observer {
         stmt.executeUpdate();
         stmt.close();
     }
-
     public static void main (String[] args) throws Exception {
 		PropertyConfigurator.configure(args[0]);
 		conn = getConnection();
@@ -118,7 +119,6 @@ public class HTMLCrawler implements Observer {
 			theCrawler.addObserver(theStorer);
 			
 			theCrawler.setVisitMonitor(new MemoizedVisitedMonitor(conn));
-
 			Thread cacheMonitorThread = new Thread(new ConnectionCacheMonitor());
 			cacheMonitorThread.start();
 
@@ -126,9 +126,13 @@ public class HTMLCrawler implements Observer {
 			
 			Thread.sleep(1000);
 			for (int i = 1; i < args.length; i++)
-				if (args[1].equals("-restart"))
-					reloadQueue(1000000);
-				else 
+				if (args[1].equals("-restart")) {
+					reloadQueue(2000000, true);
+					reloadQueue(2000000, false);
+				} else if (args[1].equals("-cleanup")) {
+					cleanup = true;
+					cleanup();
+				} else 
 					theCrawler.update(null, new URLRequest(args[i]));
 			
 			theCrawler.initiate();
@@ -349,12 +353,9 @@ public class HTMLCrawler implements Observer {
 		stmt.close();
 	}
 
-	void reloadQueue(int amount) throws SQLException, MalformedURLException {
-//		PreparedStatement stmt = conn.prepareStatement("select distinct url, length(url) from web.link where url ~ '^http:.*\\.edu.*\\.html$' and not exists (select url from web.document where document.url = link.url) and length(url) < 200 order by length(url) limit 200");
-//		PreparedStatement stmt = conn.prepareStatement("select id, url from web.document where url ~ '^https?://w.*\\.edu.*/$' and indexed is null and response_code is null and length(url)<60 limit 500");
-//		PreparedStatement stmt = conn.prepareStatement("select id, url from web.document,web.document_type where document.suffix=document_type.suffix and type='hypertext' and indexed is null and did != 6729 and url ~ '^https?://[^/]*\\.edu.*' limit " + amount);
-//		PreparedStatement stmt = conn.prepareStatement("select id, url from web.document where (document.suffix is null or document.suffix in (select suffix from web.document_type where type='hypertext')) and indexed is null and did != 6729 and url ~ '^https?://[^/]*\\.edu.*' limit " + amount);
-		PreparedStatement stmt = conn.prepareStatement("select id, url from web.document where document.suffix is null and indexed is null and did != 6729 and url ~ '^https?://[^/]*\\.edu.*' limit " + amount);
+	void cleanup() throws SQLException, MalformedURLException {
+		PreparedStatement stmt = conn.prepareStatement("select id, url from web.document where response_code = 0 ");
+
 		ResultSet rs = stmt.executeQuery();
 		while (rs.next()) {
 			int ID = rs.getInt(1);
@@ -366,4 +367,27 @@ public class HTMLCrawler implements Observer {
 		stmt.close();
 	}
 
+
+	void reloadQueue(int amount, boolean mode) throws SQLException, MalformedURLException {
+//		PreparedStatement stmt = conn.prepareStatement("select distinct url, length(url) from web.link where url ~ '^http:.*\\.edu.*\\.html$' and not exists (select url from web.document where document.url = link.url) and length(url) < 200 order by length(url) limit 200");
+//		PreparedStatement stmt = conn.prepareStatement("select id, url from web.document where url ~ '^https?://w.*\\.edu.*/$' and indexed is null and response_code is null and length(url)<60 limit 500");
+//		PreparedStatement stmt = conn.prepareStatement("select id, url from web.document,web.document_type where document.suffix=document_type.suffix and type='hypertext' and indexed is null and did != 6729 and url ~ '^https?://[^/]*\\.edu.*' limit " + amount);
+		PreparedStatement stmt = null;
+		if (mode) {
+//			stmt = conn.prepareStatement("select id, url from web.document where document.suffix ='.html' and indexed is null and url !~ 'https?://.*/calendar(/|\\.)' and url ~ '^https?://[^/]*\\.edu.*' limit " + amount);
+			stmt = conn.prepareStatement("select id, url from web.document where document.suffix ='.html' and indexed is null and url !~ 'https?://.*/calendar(/|\\.)' and url ~ '^https?://[^/]*\\.edu.*' and length(url) < 50 order by length(url) ");
+		} else {
+//			stmt = conn.prepareStatement("select id, url from web.document where document.suffix is null and indexed is null and url !~ 'https?://.*/calendar(/|\\.)' and url ~ '^https?://[^/]*\\.edu.*' limit " + amount);
+			stmt = conn.prepareStatement("select id, url from web.document where document.suffix is null and indexed is null and url !~ 'https?://.*/calendar(/|\\.)' and url ~ '^https?://[^/]*\\.edu.*' and length(url) < 50 order by length(url) ");
+		}
+		ResultSet rs = stmt.executeQuery();
+		while (rs.next()) {
+			int ID = rs.getInt(1);
+			String url = rs.getString(2);
+			logger.info("queueing: " + url);
+			URLRequest theRequest = new URLRequest(ID, url);
+			theCrawler.initialURL(theRequest);
+		}
+		stmt.close();
+	}
 }

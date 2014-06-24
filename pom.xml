@@ -77,15 +77,15 @@
      	     <plugin>
 		<groupId>edu.uiowa.icts.plugin</groupId>
 		<artifactId>protogen-plugin</artifactId>
-		<version>0.0.5</version>
+		<version>0.0.10</version>
         <configuration>
 		<props>
 		 <property><name>project.name</name><value>${project.artifactId}</value> </property> 
 		 <property><name>package.name</name><value>InCite</value></property>
 		 
 		 <property><name>generate.jsps</name><value>false</value> </property> 
-		 <property><name>generate.tld</name><value>true</value> </property> 
-		 <property><name>generate.tags</name><value>true</value> </property> 
+		 <property><name>generate.tld</name><value>false</value> </property> 
+		 <property><name>generate.tags</name><value>false</value> </property> 
 		 
 		 <property> <name>mode</name> <value>tags</value> </property>
 		 <property><name>clay.file</name><value>src/non-packaged-resources/Model.clay</value></property>

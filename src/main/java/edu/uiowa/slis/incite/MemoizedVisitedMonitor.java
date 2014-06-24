@@ -53,6 +53,15 @@ public class MemoizedVisitedMonitor extends VisitedMonitor {
 			conn.commit();
 		} catch (SQLException e) {
 			logger.error("Error processing visit monitor: " + e);
+			try {
+				conn.rollback();
+			} catch (SQLException e1) {
+				try {
+					conn = HTMLCrawler.getConnection();
+				} catch (Exception e2) {
+					logger.error("Failed to reacquire visit monitor connection: " + e2);
+				}
+			}
 		}
 		
 		if (id > 0) {

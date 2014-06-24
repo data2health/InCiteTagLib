@@ -53,23 +53,24 @@ public class ConnectionGenerator extends Generator {
 			}	
 		} catch (SQLException e) {
 			logger.error("SQL error storing document " + theDoc.getID() + " : " + theDoc.getURL() + " : " + e);
+			logger.error("SQL next exception: " + e.getNextException());
 			try {
 				conn.rollback();
 			} catch (Exception e1) {
 				logger.error("SQL error aborting transaction: " + e1);
-			} finally {
-				try {
-					conn.close();
-					conn = HTMLCrawler.getConnection();
-				} catch (Exception e2) {
-					logger.error("SQL error resetting connection: " + e2);
-					try {
-						conn = HTMLCrawler.getConnection();
-					} catch (Exception e1) {
-						logger.error("SQL error resetting connection: " + e1);
-					}
-				}				
 			}
+		} finally {
+			try {
+				conn.close();
+				conn = HTMLCrawler.getConnection();
+			} catch (Exception e2) {
+				logger.error("SQL error resetting connection: " + e2);
+				try {
+					conn = HTMLCrawler.getConnection();
+				} catch (Exception e1) {
+					logger.error("SQL error resetting connection: " + e1);
+				}
+			}				
 		}
 	}
 	
@@ -187,6 +188,28 @@ public class ConnectionGenerator extends Generator {
 		insStmt.setInt(5, theDoc.getID());
 		insStmt.execute();
 		insStmt.close();
+		
+		if (HTMLCrawler.cleanup) {
+			PreparedStatement delStmt = conn.prepareStatement("delete from web.hyperlink where id = ?");
+			delStmt.setInt(1, theDoc.getID());
+			delStmt.execute();
+			delStmt.close();
+
+			delStmt = conn.prepareStatement("delete from web.token where id = ?");
+			delStmt.setInt(1, theDoc.getID());
+			delStmt.execute();
+			delStmt.close();
+			
+			delStmt = conn.prepareStatement("delete from web.doi where id = ?");
+			delStmt.setInt(1, theDoc.getID());
+			delStmt.execute();
+			delStmt.close();
+			
+			delStmt = conn.prepareStatement("delete from web.pmid where id = ?");
+			delStmt.setInt(1, theDoc.getID());
+			delStmt.execute();
+			delStmt.close();
+		}
 		
 		PreparedStatement linkStmt = conn.prepareStatement("insert into web.hyperlink values (?,?,?,?)");
 		int linkCount = 0;
