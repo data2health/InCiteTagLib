@@ -179,6 +179,7 @@ public class ConnectionGenerator extends Generator {
 		}
 	}
 	
+	@SuppressWarnings("unchecked")
 	void storeDocument(HTMLDocument theDoc) throws SQLException {
 		PreparedStatement insStmt = conn.prepareStatement("update web.document set title = ?, length = ?, modified = ?, indexed = now(), response_code = ? where id = ?");
 		insStmt.setString(1, theDoc.getTitle());

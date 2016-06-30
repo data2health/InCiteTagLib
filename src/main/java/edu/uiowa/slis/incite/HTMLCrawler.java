@@ -191,7 +191,6 @@ public class HTMLCrawler implements Observer {
     static Pattern pmidPat = Pattern.compile("[^0-9]*([0-9]+).*$");
 
     void rescanPMIDS() throws SQLException, MalformedURLException, IOException {
-		HTMLLexer theLexer = new HTMLLexer();
 		PreparedStatement scanStmt = conn.prepareStatement("select distinct id from web.link where url like 'http://www.ncbi.nlm.nih.gov/pubmed/%' order by id");
 		ResultSet scanRS = scanStmt.executeQuery();
 		while (scanRS.next()) {
@@ -255,7 +254,6 @@ public class HTMLCrawler implements Observer {
 	}
 	
     void rescanDOIS() throws SQLException, MalformedURLException, IOException {
-		HTMLLexer theLexer = new HTMLLexer();
 		PreparedStatement scanStmt = conn.prepareStatement("select distinct id from web.link where url like 'http://dx.doi.org/%' order by id");
 		ResultSet scanRS = scanStmt.executeQuery();
 		while (scanRS.next()) {
