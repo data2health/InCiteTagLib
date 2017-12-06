@@ -8,7 +8,6 @@
 .settings/org.eclipse.wst.validation.prefs -text
 .settings/org.maven.ide.eclipse.prefs -text
 /pom.xml -text
-src/main/java/InCite/README.txt -text
 src/main/java/edu/uiowa/slis/incite/ConnectionCacheMonitor.java -text
 src/main/java/edu/uiowa/slis/incite/ConnectionFactory.java -text
 src/main/java/edu/uiowa/slis/incite/ConnectionGenerator.java -text

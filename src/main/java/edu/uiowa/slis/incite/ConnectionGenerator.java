@@ -20,6 +20,7 @@ import edu.uiowa.crawling.URLRequest;
 import edu.uiowa.lex.DocumentToken;
 import edu.uiowa.lex.HTMLDocument;
 import edu.uiowa.lex.HTMLLink;
+import edu.uiowa.lex.Sentence;
 import edu.uiowa.util.Generator;
 
 public class ConnectionGenerator extends Generator {
@@ -257,7 +258,19 @@ public class ConnectionGenerator extends Generator {
 		}
 		pmidStmt.executeBatch();
 		pmidStmt.close();
-		
+				
+		PreparedStatement sentStmt = conn.prepareStatement("insert into web.sentence values (?,?,?,?)");
+		int sentCount = 1;
+		for (Sentence sentence : theDoc.getSentences()) {
+		    sentStmt.setInt(1, theDoc.getID());
+		    sentStmt.setInt(2, sentCount++);
+		    sentStmt.setString(3, sentence.getText());
+		    sentStmt.setString(4, sentence.toString());
+		    sentStmt.addBatch();
+		}
+		sentStmt.executeBatch();
+		sentStmt.close();
+
 		conn.commit();
 	}
 	
