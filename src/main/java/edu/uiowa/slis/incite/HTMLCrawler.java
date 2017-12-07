@@ -12,6 +12,7 @@ import java.sql.Statement;
 import java.util.Observable;
 import java.util.Observer;
 import java.util.Properties;
+import java.util.Vector;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -23,6 +24,8 @@ import edu.uiowa.crawling.CrawlerThreadFactory;
 import edu.uiowa.crawling.Excluder;
 import edu.uiowa.crawling.URLRequest;
 import edu.uiowa.crawling.filters.domainFilter;
+import edu.uiowa.crawling.filters.domainPoolFilter;
+import edu.uiowa.crawling.filters.domainPrefixFilter;
 import edu.uiowa.crawling.filters.pathLengthFilter;
 import edu.uiowa.crawling.filters.queryLengthFilter;
 import edu.uiowa.crawling.filters.textFilter;
@@ -96,8 +99,32 @@ public class HTMLCrawler implements Observer {
 	    conn.commit();
 	}
     }
+    
+    Vector<String> seeds = new Vector<String>();
 
     HTMLCrawler(String[] args) throws Exception {
+	theCrawler = new Crawler(new CrawlerThreadFactory(CrawlerThreadFactory.HTML), false);
+
+	PreparedStatement filterStmt = conn.prepareStatement("select domain,prefix,seed from web.crawler_seed");
+	domainPoolFilter poolFilter = new domainPoolFilter();
+	ResultSet filterRS = filterStmt.executeQuery();
+	while (filterRS.next()) {
+	    String domain = filterRS.getString(1);
+	    String prefix = filterRS.getString(2);
+	    String seed = filterRS.getString(3);
+
+	    if (domain != null) {
+		logger.info("adding domain filter: " + domain);
+		Excluder.addFilter(new domainFilter(domain));
+		poolFilter.addDomainFilter(new domainFilter(domain));
+	    } else if (prefix != null) {
+		logger.info("adding prefiex filter: " + prefix);
+		poolFilter.addDomainFilter(new domainPrefixFilter(prefix));
+	    }
+	    seeds.add(seed);
+	}
+	filterStmt.close();
+
 	if (args[1].equals("-rescan")) {
 	    rescan(args[2]);
 	} else if (args[1].equals("-reset")) {
@@ -109,10 +136,8 @@ public class HTMLCrawler implements Observer {
 	} else {
 	    PooledGenerator theStorer = new PooledGenerator(10, new ConnectionFactory());
 	    theStorer.setQueueLength(50);
-
-	    theCrawler = new Crawler(new CrawlerThreadFactory(CrawlerThreadFactory.HTML), false);
-	    Excluder.addFilter(new domainFilter("icts.uiowa.edu"));
-	    theCrawler.addFilter(new domainFilter("icts.uiowa.edu"));
+	    
+	    theCrawler.addFilter(poolFilter);
 	    theCrawler.addFilter(new textFilter(true));
 	    theCrawler.addFilter(new pathLengthFilter(10));
 //	    theCrawler.addFilter(new queryLengthFilter());
@@ -162,10 +187,13 @@ public class HTMLCrawler implements Observer {
 	resetDocStmt.execute();
 	resetDocStmt.close();
 
-	PreparedStatement docStmt = conn.prepareStatement("insert into web.document(url,did) values ('http://www.icts.uiowa.edu/', 1)");
-	docStmt.execute();
-	docStmt.close();
-
+	for (String seed : seeds) {
+	    PreparedStatement docStmt = conn.prepareStatement("insert into web.document(url,did) values (?, 1)");
+	    docStmt.setString(1, seed);
+	    docStmt.execute();
+	    docStmt.close();
+	}
+	
 	conn.commit();
     }
 
@@ -394,14 +422,14 @@ public class HTMLCrawler implements Observer {
 	    // 'https?://.*/calendar(/|\\.)' and url ~ '^https?://[^/]*\\.edu.*'
 	    // limit " + amount);
 	    stmt = conn.prepareStatement(
-		    "select id, url from web.document where document.suffix ='.html' and indexed is null and url !~ 'https?://.*/calendar(/|\\.)' and url ~ '^https?://[^/]*\\.edu.*' and length(url) < 50 order by length(url) ");
+		    "select id, url from web.document where document.suffix ='.html' and indexed is null and url !~ 'https?://.*/calendar(/|\\.)' and url ~ '^https?://[^/]*\\.edu.*' and length(url) < 150 order by length(url) ");
 	} else {
 	    // stmt = conn.prepareStatement("select id, url from web.document
 	    // where document.suffix is null and indexed is null and url !~
 	    // 'https?://.*/calendar(/|\\.)' and url ~ '^https?://[^/]*\\.edu.*'
 	    // limit " + amount);
 	    stmt = conn.prepareStatement(
-		    "select id, url from web.document where document.suffix is null and indexed is null and url !~ 'https?://.*/calendar(/|\\.)' and url ~ '^https?://[^/]*\\.edu.*' and length(url) < 50 order by length(url) ");
+		    "select id, url from web.document where document.suffix is null and indexed is null and url !~ 'https?://.*/calendar(/|\\.)' and url ~ '^https?://[^/]*\\.edu.*' and length(url) < 150 order by length(url) ");
 	}
 	ResultSet rs = stmt.executeQuery();
 	while (rs.next()) {
