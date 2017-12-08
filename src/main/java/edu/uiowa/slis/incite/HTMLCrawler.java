@@ -27,7 +27,6 @@ import edu.uiowa.crawling.filters.domainFilter;
 import edu.uiowa.crawling.filters.domainPoolFilter;
 import edu.uiowa.crawling.filters.domainPrefixFilter;
 import edu.uiowa.crawling.filters.pathLengthFilter;
-import edu.uiowa.crawling.filters.queryLengthFilter;
 import edu.uiowa.crawling.filters.textFilter;
 import edu.uiowa.lex.HTMLDocument;
 import edu.uiowa.lex.HTMLLexer;
