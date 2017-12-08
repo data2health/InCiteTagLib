@@ -786,7 +786,7 @@
 </unique-key>
 </unique-key-list>
 <foreign-key-list>
-<foreign-key alias="" name="FK_document_1" on-delete="" on-update="" referenced-key="PK_INSTITUTION" referenced-table="institution" referenced-table-schema="web" remarks="" source-entity-role="" source-multiplicity="0..*" source-relationship-type="" target-entity-role="" target-multiplicity="1" target-relationship-type="" uid="600d361a:1447e84168e:-7fbc">
+<foreign-key alias="" name="FK_document_1" on-delete="CASCADE" on-update="CASCADE" referenced-key="PK_INSTITUTION" referenced-table="institution" referenced-table-schema="web" remarks="" source-entity-role="" source-multiplicity="0..*" source-relationship-type="" target-entity-role="" target-multiplicity="1" target-relationship-type="" uid="600d361a:1447e84168e:-7fbc">
 <foreign-key-description/>
 <foreign-key-figure>
 <fk-fig-bendpoint-list/>
@@ -838,7 +838,7 @@
 </table>
 <table alias="" name="token" remarks="" uid="6e8dc476:14423bc767e:-7fe8">
 <table-description/>
-<table-figure-bounds height="-1" width="-1" x="596" y="688"/>
+<table-figure-bounds height="-1" width="-1" x="694" y="679"/>
 <column-list>
 <column alias="" auto-increment="false" column-size="0" decimal-digits="0" default-value="" mandatory="true" name="id" remarks="" uid="6e8dc476:14423bc767e:-7f92">
 <column-description/>
@@ -1042,6 +1042,92 @@
 </unique-key>
 </unique-key-list>
 <foreign-key-list/>
+<index-list/>
+</table>
+<table alias="" name="award" remarks="" uid="37e622d3:15fc0c6c294:-7f71">
+<table-description/>
+<table-figure-bounds height="-1" width="-1" x="404" y="879"/>
+<column-list>
+<column alias="" auto-increment="false" column-size="0" decimal-digits="0" default-value="" mandatory="true" name="id" remarks="" uid="37e622d3:15fc0c6c294:-7f6f">
+<column-description/>
+<data-type jdbc-type="4" name="INT" selected-variant-pattern="INT">
+<variant type-name-pattern="INT"/>
+</data-type>
+</column>
+<column alias="" auto-increment="false" column-size="0" decimal-digits="0" default-value="" mandatory="true" name="seqnum" remarks="" uid="37e622d3:15fc0c6c294:-7f6e">
+<column-description/>
+<data-type jdbc-type="4" name="INT" selected-variant-pattern="INT">
+<variant type-name-pattern="INT"/>
+</data-type>
+</column>
+<column alias="" auto-increment="false" column-size="0" decimal-digits="0" default-value="" mandatory="false" name="award" remarks="" uid="37e622d3:15fc0c6c294:-7f6d">
+<column-description/>
+<data-type jdbc-type="-1" literal-prefix="'" literal-suffix="'" name="TEXT" selected-variant-pattern="TEXT">
+<variant type-name-pattern="TEXT"/>
+</data-type>
+</column>
+</column-list>
+<primary-key alias="" name="PK_AWARD" remarks="" uid="37e622d3:15fc0c6c294:-7f6c">
+<primary-key-description/>
+<primary-key-column name="id"/>
+<primary-key-column name="seqnum"/>
+</primary-key>
+<unique-key-list/>
+<foreign-key-list>
+<foreign-key alias="" name="FK_award_1" on-delete="CASCADE" on-update="CASCADE" referenced-key="PK_DOCUMENT" referenced-table="document" referenced-table-schema="web" remarks="" source-entity-role="" source-multiplicity="0..*" source-relationship-type="" target-entity-role="" target-multiplicity="1" target-relationship-type="" uid="37e622d3:15fc0c6c294:-7ee3">
+<foreign-key-description/>
+<foreign-key-figure>
+<fk-fig-bendpoint-list/>
+</foreign-key-figure>
+<foreign-key-column column-name="id" referenced-key-column-name="id"/>
+</foreign-key>
+</foreign-key-list>
+<index-list/>
+</table>
+<table alias="" name="sentence" remarks="" uid="37e622d3:15fc0c6c294:-7f77">
+<table-description/>
+<table-figure-bounds height="-1" width="-1" x="622" y="833"/>
+<column-list>
+<column alias="" auto-increment="false" column-size="0" decimal-digits="0" default-value="" mandatory="true" name="id" remarks="" uid="37e622d3:15fc0c6c294:-7f75">
+<column-description/>
+<data-type jdbc-type="4" name="INT" selected-variant-pattern="INT">
+<variant type-name-pattern="INT"/>
+</data-type>
+</column>
+<column alias="" auto-increment="false" column-size="0" decimal-digits="0" default-value="" mandatory="true" name="seqnum" remarks="" uid="37e622d3:15fc0c6c294:-7f74">
+<column-description/>
+<data-type jdbc-type="4" name="INT" selected-variant-pattern="INT">
+<variant type-name-pattern="INT"/>
+</data-type>
+</column>
+<column alias="" auto-increment="false" column-size="0" decimal-digits="0" default-value="" mandatory="false" name="sentence" remarks="" uid="37e622d3:15fc0c6c294:-7f73">
+<column-description/>
+<data-type jdbc-type="-1" literal-prefix="'" literal-suffix="'" name="TEXT" selected-variant-pattern="TEXT">
+<variant type-name-pattern="TEXT"/>
+</data-type>
+</column>
+<column alias="" auto-increment="false" column-size="0" decimal-digits="0" default-value="" mandatory="false" name="tokens" remarks="" uid="37e622d3:15fc0c6c294:-7f67">
+<column-description/>
+<data-type jdbc-type="-1" literal-prefix="'" literal-suffix="'" name="TEXT" selected-variant-pattern="TEXT">
+<variant type-name-pattern="TEXT"/>
+</data-type>
+</column>
+</column-list>
+<primary-key alias="" name="PK_SENTENCE" remarks="" uid="37e622d3:15fc0c6c294:-7f72">
+<primary-key-description/>
+<primary-key-column name="id"/>
+<primary-key-column name="seqnum"/>
+</primary-key>
+<unique-key-list/>
+<foreign-key-list>
+<foreign-key alias="" name="FK_sentence_1" on-delete="CASCADE" on-update="CASCADE" referenced-key="PK_DOCUMENT" referenced-table="document" referenced-table-schema="web" remarks="" source-entity-role="" source-multiplicity="0..*" source-relationship-type="" target-entity-role="" target-multiplicity="1" target-relationship-type="" uid="37e622d3:15fc0c6c294:-7ece">
+<foreign-key-description/>
+<foreign-key-figure>
+<fk-fig-bendpoint-list/>
+</foreign-key-figure>
+<foreign-key-column column-name="id" referenced-key-column-name="id"/>
+</foreign-key>
+</foreign-key-list>
 <index-list/>
 </table>
 </table-list>

@@ -99,18 +99,19 @@ public class HTMLCrawler implements Observer {
 	}
     }
     
-    Vector<String> seeds = new Vector<String>();
+    Vector<Seed> seeds = new Vector<Seed>();
 
     HTMLCrawler(String[] args) throws Exception {
 	theCrawler = new Crawler(new CrawlerThreadFactory(CrawlerThreadFactory.HTML), false);
 
-	PreparedStatement filterStmt = conn.prepareStatement("select domain,prefix,seed from web.crawler_seed");
+	PreparedStatement filterStmt = conn.prepareStatement("select institution,domain,prefix,seed from web.crawler_seed");
 	domainPoolFilter poolFilter = new domainPoolFilter();
 	ResultSet filterRS = filterStmt.executeQuery();
 	while (filterRS.next()) {
-	    String domain = filterRS.getString(1);
-	    String prefix = filterRS.getString(2);
-	    String seed = filterRS.getString(3);
+	    String institution = filterRS.getString(1);
+	    String domain = filterRS.getString(2);
+	    String prefix = filterRS.getString(3);
+	    String seed = filterRS.getString(4);
 
 	    if (domain != null) {
 		logger.info("adding domain filter: " + domain);
@@ -120,7 +121,7 @@ public class HTMLCrawler implements Observer {
 		logger.info("adding prefiex filter: " + prefix);
 		poolFilter.addDomainFilter(new domainPrefixFilter(prefix));
 	    }
-	    seeds.add(seed);
+	    seeds.add(new Seed(institution, domain, prefix, seed));
 	}
 	filterStmt.close();
 
@@ -133,8 +134,7 @@ public class HTMLCrawler implements Observer {
 	} else if (args[1].equals("-dois")) {
 	    rescanDOIS();
 	} else {
-	    PooledGenerator theStorer = new PooledGenerator(10, new ConnectionFactory());
-	    theStorer.setQueueLength(50);
+	    PooledGenerator theStorer = new PooledGenerator(new ConnectionFactory());
 	    
 	    theCrawler.addFilter(poolFilter);
 	    theCrawler.addFilter(new textFilter(true));
@@ -143,7 +143,7 @@ public class HTMLCrawler implements Observer {
 //	    theCrawler.addFilter(new levelFilter(3));
 	    theCrawler.addObserver(theStorer);
 
-	    theCrawler.setVisitMonitor(new MemoizedVisitedMonitor(conn));
+	    theCrawler.setVisitMonitor(new MemoizedVisitedMonitor(getConnection()));
 	    Thread cacheMonitorThread = new Thread(new ConnectionCacheMonitor());
 	    cacheMonitorThread.start();
 
@@ -178,17 +178,24 @@ public class HTMLCrawler implements Observer {
 	resetInstStmt.execute();
 	resetInstStmt.close();
 
-	PreparedStatement instStmt = conn.prepareStatement("insert into web.institution(domain) values ('uiowa.edu')");
-	instStmt.execute();
-	instStmt.close();
-
 	PreparedStatement resetDocStmt = conn.prepareStatement("alter sequence web.document_id_seq restart with 1");
 	resetDocStmt.execute();
 	resetDocStmt.close();
 
-	for (String seed : seeds) {
-	    PreparedStatement docStmt = conn.prepareStatement("insert into web.document(url,did) values (?, 1)");
-	    docStmt.setString(1, seed);
+	for (Seed seed : seeds) {
+	    PreparedStatement insert = conn.prepareStatement("insert into web.institution(domain) values(?)", Statement.RETURN_GENERATED_KEYS);
+	    insert.setString(1, seed.institution);
+	    insert.execute();
+	    ResultSet rs = insert.getGeneratedKeys();
+	    while (rs.next()) {
+		seed.did = rs.getInt(1);
+		logger.info("institution: " + seed.institution + "\tdid: " + seed.did);
+	    }
+	    insert.close();
+
+	    PreparedStatement docStmt = conn.prepareStatement("insert into web.document(url,did) values (?, ?)");
+	    docStmt.setString(1, seed.seed);
+	    docStmt.setInt(2, seed.did);
 	    docStmt.execute();
 	    docStmt.close();
 	}
@@ -421,14 +428,14 @@ public class HTMLCrawler implements Observer {
 	    // 'https?://.*/calendar(/|\\.)' and url ~ '^https?://[^/]*\\.edu.*'
 	    // limit " + amount);
 	    stmt = conn.prepareStatement(
-		    "select id, url from web.document where document.suffix ='.html' and indexed is null and url !~ 'https?://.*/calendar(/|\\.)' and url ~ '^https?://[^/]*\\.edu.*' and length(url) < 150 order by length(url) ");
+		    "select id, url from web.document where document.suffix ='.html' and indexed is null and url !~ 'https?://.*/calendar(/|\\.)' and url ~ '^https?://.*' and length(url) < 150 order by length(url) ");
 	} else {
 	    // stmt = conn.prepareStatement("select id, url from web.document
 	    // where document.suffix is null and indexed is null and url !~
 	    // 'https?://.*/calendar(/|\\.)' and url ~ '^https?://[^/]*\\.edu.*'
 	    // limit " + amount);
 	    stmt = conn.prepareStatement(
-		    "select id, url from web.document where document.suffix is null and indexed is null and url !~ 'https?://.*/calendar(/|\\.)' and url ~ '^https?://[^/]*\\.edu.*' and length(url) < 150 order by length(url) ");
+		    "select id, url from web.document where document.suffix is null and indexed is null and url !~ 'https?://.*/calendar(/|\\.)' and url ~ '^https?://.*' and length(url) < 150 order by length(url) ");
 	}
 	ResultSet rs = stmt.executeQuery();
 	while (rs.next()) {
@@ -439,5 +446,20 @@ public class HTMLCrawler implements Observer {
 	    theCrawler.initialURL(theRequest);
 	}
 	stmt.close();
+    }
+    
+    class Seed {
+	String institution = null;
+	String domain = null;
+	int did = 0;
+	String prefix = null;
+	String seed = null;
+	
+	Seed(String institution, String domain, String prefix, String seed) {
+	    this.institution = institution;
+	    this.domain = domain;
+	    this.prefix = prefix;
+	    this.seed = seed;
+	}
     }
 }

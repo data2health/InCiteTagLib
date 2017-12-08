@@ -48,7 +48,7 @@ CREATE TABLE web.document (
      , suffix TEXT
      , PRIMARY KEY (id)
      , CONSTRAINT FK_document_1 FOREIGN KEY (did)
-                  REFERENCES web.institution (did)
+                  REFERENCES web.institution (did) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 CREATE TABLE incite.author (
@@ -193,6 +193,25 @@ CREATE TABLE web.hyperlink (
      , anchor TEXT
      , PRIMARY KEY (id, seqnum)
      , CONSTRAINT FK_TABLE_13_1 FOREIGN KEY (id)
+                  REFERENCES web.document (id) ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+CREATE TABLE web.award (
+       id INT NOT NULL
+     , seqnum INT NOT NULL
+     , award TEXT
+     , PRIMARY KEY (id, seqnum)
+     , CONSTRAINT FK_award_1 FOREIGN KEY (id)
+                  REFERENCES web.document (id) ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+CREATE TABLE web.sentence (
+       id INT NOT NULL
+     , seqnum INT NOT NULL
+     , sentence TEXT
+     , tokens TEXT
+     , PRIMARY KEY (id, seqnum)
+     , CONSTRAINT FK_sentence_1 FOREIGN KEY (id)
                   REFERENCES web.document (id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 

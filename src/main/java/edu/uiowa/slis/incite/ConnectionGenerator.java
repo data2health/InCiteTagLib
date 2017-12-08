@@ -40,7 +40,7 @@ public class ConnectionGenerator extends Generator {
 	    return;
 
 	HTMLDocument theDoc = (HTMLDocument) obj;
-	logger.info("HTMLCrawler updated: " + theDoc);
+	logger.debug("HTMLCrawler updated: " + theDoc);
 	try {
 	    storeURLs(theDoc);
 	    storeDocument(theDoc);
@@ -239,9 +239,20 @@ public class ConnectionGenerator extends Generator {
 	tokenStmt.executeBatch();
 	tokenStmt.close();
 
+	PreparedStatement grantStmt = conn.prepareStatement("insert into web.award values (?,?,?)");
+	int grantCount = 0;
+	for (String grant : theDoc.getGrants()) {
+	    grantStmt.setInt(1, theDoc.getID());
+	    grantStmt.setInt(2, grantCount++);
+	    grantStmt.setString(3, grant);
+	    grantStmt.addBatch();
+	}
+	grantStmt.executeBatch();
+	grantStmt.close();
+
 	PreparedStatement doiStmt = conn.prepareStatement("insert into web.doi values (?,?,?)");
 	int doiCount = 0;
-	for (String doi : (Vector<String>) theDoc.getDois()) {
+	for (String doi : theDoc.getDois()) {
 	    doiStmt.setInt(1, theDoc.getID());
 	    doiStmt.setInt(2, doiCount++);
 	    doiStmt.setString(3, doi);
@@ -252,7 +263,7 @@ public class ConnectionGenerator extends Generator {
 
 	PreparedStatement pmidStmt = conn.prepareStatement("insert into web.pmid values (?,?,?)");
 	int pmidCount = 0;
-	for (int pmid : (Vector<Integer>) theDoc.getPmids()) {
+	for (int pmid : theDoc.getPmids()) {
 	    pmidStmt.setInt(1, theDoc.getID());
 	    pmidStmt.setInt(2, pmidCount++);
 	    pmidStmt.setInt(3, pmid);
