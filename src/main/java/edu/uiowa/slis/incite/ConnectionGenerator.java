@@ -104,6 +104,12 @@ public class ConnectionGenerator extends Generator {
 	    if (theMatcher.find()) {
 		suffix = theMatcher.group(1);
 	    }
+	    if (suffix != null && suffix.indexOf(' ') > 0)
+		suffix = suffix.substring(0, suffix.indexOf(' '));
+	    if (suffix != null && suffix.indexOf(';') > 0)
+		suffix = suffix.substring(0, suffix.indexOf(';'));
+	    if (suffix != null && suffix.length() > 10)
+		suffix = null;
 
 	    logger.debug("domain name: " + domainname);
 	    logger.debug("suffix: " + suffix);

@@ -118,7 +118,7 @@ public class HTMLCrawler implements Observer {
 		Excluder.addFilter(new domainFilter(domain));
 		poolFilter.addDomainFilter(new domainFilter(domain));
 	    } else if (prefix != null) {
-		logger.info("adding prefiex filter: " + prefix);
+		logger.info("adding prefix filter: " + prefix);
 		poolFilter.addDomainFilter(new domainPrefixFilter(prefix));
 	    }
 	    seeds.add(new Seed(institution, domain, prefix, seed));
