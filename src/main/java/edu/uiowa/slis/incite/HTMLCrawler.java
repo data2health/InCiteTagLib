@@ -158,7 +158,7 @@ public class HTMLCrawler implements Observer {
 		    cleanup = true;
 		    cleanup();
 		} else
-		    theCrawler.update(null, new URLRequest(args[i]));
+		    reloadQueue(args[i]);
 
 	    theCrawler.initiate();
 
@@ -441,6 +441,19 @@ public class HTMLCrawler implements Observer {
 	while (rs.next()) {
 	    int ID = rs.getInt(1);
 	    String url = rs.getString(2);
+	    logger.info("queueing: " + url);
+	    URLRequest theRequest = new URLRequest(ID, url);
+	    theCrawler.initialURL(theRequest);
+	}
+	stmt.close();
+    }
+    
+    void reloadQueue(String url) throws SQLException, MalformedURLException {
+	PreparedStatement stmt = conn.prepareStatement("select id from web.document where url=?");
+	stmt.setString(1, url);
+	ResultSet rs = stmt.executeQuery();
+	while (rs.next()) {
+	    int ID = rs.getInt(1);
 	    logger.info("queueing: " + url);
 	    URLRequest theRequest = new URLRequest(ID, url);
 	    theCrawler.initialURL(theRequest);

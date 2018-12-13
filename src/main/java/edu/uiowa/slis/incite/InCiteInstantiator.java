@@ -24,6 +24,7 @@ import edu.uiowa.concept.Concept;
 import edu.uiowa.concept.ExhaustiveVectorConceptRecognizer;
 import edu.uiowa.concept.detector.GRIDDetector;
 import edu.uiowa.concept.detector.GeoNamesDetector;
+import edu.uiowa.entity.Entity;
 import edu.uiowa.extraction.LocalProperties;
 import edu.uiowa.extraction.Template;
 import edu.uiowa.extraction.TemplateInstantiator;
@@ -411,6 +412,12 @@ public class InCiteInstantiator extends TemplateInstantiator {
 	} finally {
 	    conn.commit();
 	}
+    }
+
+    @Override
+    public void resolveID(int id, Entity elementAt) throws SQLException {
+	// TODO Auto-generated method stub
+	
     }
 
 }

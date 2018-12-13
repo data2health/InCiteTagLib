@@ -774,6 +774,12 @@
 <variant type-name-pattern="TEXT"/>
 </data-type>
 </column>
+<column alias="" auto-increment="false" column-size="0" decimal-digits="0" default-value="" mandatory="false" name="response_code" remarks="" uid="2d7254ae:166ad4835a1:-7d48">
+<column-description/>
+<data-type jdbc-type="4" name="INT" selected-variant-pattern="INT">
+<variant type-name-pattern="INT"/>
+</data-type>
+</column>
 </column-list>
 <primary-key alias="" name="PK_DOCUMENT" remarks="" uid="6e8dc476:14423bc767e:-7ff2">
 <primary-key-description/>
