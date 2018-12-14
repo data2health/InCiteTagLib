@@ -11,7 +11,13 @@ import java.util.Vector;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 
+import edu.stanford.nlp.parser.Parser;
+import edu.uiowa.NLP_grammar.SegmentParser;
+import edu.uiowa.NLP_grammar.StanfordParserBridge;
+import edu.uiowa.NLP_grammar.TextSegment;
+import edu.uiowa.NLP_grammar.TextSegmentElement;
 import edu.uiowa.NLP_grammar.linkGrammarParserBridge;
+import edu.uiowa.NLP_grammar.parser;
 import edu.uiowa.NLP_grammar.syntaxTree;
 import edu.uiowa.lex.Sentence;
 
@@ -69,12 +75,12 @@ public class HTMLParser implements Runnable {
     
     int threadID = 0;
     Connection conn = null;
-    linkGrammarParserBridge theParser = null;
+    SegmentParser theParser = null;
     
     public HTMLParser(int threadID) throws Exception {
 	this.threadID = threadID;
 	conn = getConnection();
-	theParser = new linkGrammarParserBridge();
+	theParser = new SegmentParser();
 	theParser.setParseCount(parseCount);
     }
     
@@ -92,37 +98,65 @@ public class HTMLParser implements Runnable {
     @SuppressWarnings("unchecked")
     void parseDocument(int id) throws SQLException {
 	logger.info("[" + threadID + "] " + "document: " + id);
-	PreparedStatement sentStmt = conn.prepareStatement("select seqnum,tokens from web.sentence where id=? order by seqnum");
-	sentStmt.setInt(1, id);
-	ResultSet sentRS = sentStmt.executeQuery();
-	while (sentRS.next()) {
-	    int seqnum = sentRS.getInt(1);
-	    String sentString = sentRS.getString(2);
-	    logger.info("[" + threadID + "] " + "\tseqnum: " + seqnum + "\t" + sentString);
-	    
-	    Sentence sentence = Sentence.reconstructSentence(sentString);
-	    logger.debug("[" + threadID + "] " + "\t\tsentence: " + sentence);
+	PreparedStatement segStmt = conn.prepareStatement("select seqnum,sentence from web.sentence where id=? order by seqnum");
+	segStmt.setInt(1, id);
+	ResultSet segRS = segStmt.executeQuery();
+	while (segRS.next()) {
+	    int seqnum = segRS.getInt(1);
+	    String segString = segRS.getString(2);
+	    logger.info("[" + threadID + "] " + "\tseqnum: " + seqnum + "\t" + segString);
 
 	    try {
-		int parsenum = 1;
-		PreparedStatement parseStmt = conn.prepareStatement("insert into extraction.parse values(?,?,?,?)");
-		for (syntaxTree tree : (Vector<syntaxTree>)(theParser.parsesAndAssemblies(sentence))) {
-		theParser.tagTree(sentence.theSentence, tree);
-		logger.debug("[" + threadID + "] " + "\t\tparse: " + tree.treeString());
-		parseStmt.setInt(1, id);
-		parseStmt.setInt(2, seqnum);
-		parseStmt.setInt(3, parsenum++);
-		parseStmt.setString(4, tree.treeString());
-		parseStmt.execute();
-		}
-		parseStmt.close();
+		TextSegment segment = theParser.parse(segString);
+		    
+		    if (segment.exceptionRaised) {
+			PreparedStatement exStmt = conn.prepareStatement("insert into extraction.ignore values(?)");
+			exStmt.setInt(1, id);
+			exStmt.execute();
+			exStmt.close();
+		    }
+		    
+		    if (theParser.isPunctuationLimitExceeded()) {
+			conn.rollback();
+			PreparedStatement exStmt = conn.prepareStatement("insert into extraction.ignore values(?)");
+			exStmt.setInt(1, id);
+			exStmt.execute();
+			exStmt.close();
+			break;
+		    }
+		    
+		    int sentenceCount = 0;
+		    for (TextSegmentElement element : segment.getElementVector()) {
+			logger.debug("\tsentence: " + element.getSentence());
+			
+			PreparedStatement sentStmt = conn.prepareStatement("insert into extraction.sentence values(?,?,?,?,?)");
+			sentStmt.setInt(1, id);
+			sentStmt.setInt(2, seqnum);
+			sentStmt.setInt(3, ++sentenceCount);
+			sentStmt.setString(4, element.getSentence().getText());
+			sentStmt.setString(5, element.getSentence().toString());
+			sentStmt.execute();
+			sentStmt.close();
+			
+			int parseCount = 0;
+			for (syntaxTree theTree : element.getParseVector()) {
+			    logger.debug("\t\tparse: " + theTree.treeString());
+
+			    PreparedStatement parseStmt = conn.prepareStatement("insert into extraction.parse values(?,?,?,?,?)");
+			    parseStmt.setInt(1, id);
+			    parseStmt.setInt(2, seqnum);
+			    parseStmt.setInt(3, sentenceCount);
+			    parseStmt.setInt(4, ++parseCount);
+			    parseStmt.setString(5, theTree.treeString());
+			    parseStmt.execute();
+			    parseStmt.close();
+			}
+		    }
 	    } catch (Exception e) {
 		logger.error("Error parsing: ", e);
-		theParser.destroy();
-		theParser = new linkGrammarParserBridge();
 	    }
 	}
-	sentStmt.close();
+	segStmt.close();
 	
 	conn.commit();
     }
