@@ -7,7 +7,7 @@ CREATE TABLE incite.scan (
      , PRIMARY KEY (id)
 );
 
-CREATE TABLE web.institution (
+CREATE TABLE jsoup.institution (
        did SERIAL NOT NULL
      , domain TEXT CONSTRAINT UQ_institution_1 UNIQUE
      , name TEXT

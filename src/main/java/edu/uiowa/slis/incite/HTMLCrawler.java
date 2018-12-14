@@ -23,10 +23,13 @@ import edu.uiowa.crawling.Crawler;
 import edu.uiowa.crawling.CrawlerThreadFactory;
 import edu.uiowa.crawling.Excluder;
 import edu.uiowa.crawling.URLRequest;
+import edu.uiowa.crawling.filters.binaryDocumentFilter;
 import edu.uiowa.crawling.filters.domainFilter;
 import edu.uiowa.crawling.filters.domainPoolFilter;
 import edu.uiowa.crawling.filters.domainPrefixFilter;
+import edu.uiowa.crawling.filters.imageFilter;
 import edu.uiowa.crawling.filters.pathLengthFilter;
+import edu.uiowa.crawling.filters.queryLengthFilter;
 import edu.uiowa.crawling.filters.textFilter;
 import edu.uiowa.lex.HTMLDocument;
 import edu.uiowa.lex.HTMLLexer;
@@ -138,8 +141,10 @@ public class HTMLCrawler implements Observer {
 	    
 	    theCrawler.addFilter(poolFilter);
 	    theCrawler.addFilter(new textFilter(true));
+	    theCrawler.addFilter(new imageFilter(false));
+	    theCrawler.addFilter(new binaryDocumentFilter(false));
 	    theCrawler.addFilter(new pathLengthFilter(10));
-//	    theCrawler.addFilter(new queryLengthFilter());
+	    theCrawler.addFilter(new queryLengthFilter(200));
 //	    theCrawler.addFilter(new levelFilter(3));
 	    theCrawler.addObserver(theStorer);
 

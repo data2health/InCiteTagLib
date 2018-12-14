@@ -183,6 +183,12 @@ public class ConnectionGenerator extends Generator {
 		}
 
 		urlHash.put(link.getUrl(), link.getID());
+		try {
+		    URLRequest theRequest = new URLRequest(link.getID(), link.getUrl());
+		    HTMLCrawler.theCrawler.initialURL(theRequest);
+		} catch (MalformedURLException e) {
+		}
+
 	    }
 	}
     }

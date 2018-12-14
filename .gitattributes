@@ -8,6 +8,7 @@
 .settings/org.eclipse.wst.validation.prefs -text
 .settings/org.maven.ide.eclipse.prefs -text
 /pom.xml -text
+src/main/java/edu/uiowa/slis/incite/BiomedicalSentenceGenerator.java -text
 src/main/java/edu/uiowa/slis/incite/ConnectionCacheMonitor.java -text
 src/main/java/edu/uiowa/slis/incite/ConnectionFactory.java -text
 src/main/java/edu/uiowa/slis/incite/ConnectionGenerator.java -text
@@ -16,6 +17,7 @@ src/main/java/edu/uiowa/slis/incite/HTMLFragmenter.java -text
 src/main/java/edu/uiowa/slis/incite/HTMLParser.java -text
 src/main/java/edu/uiowa/slis/incite/InCiteDecorator.java -text
 src/main/java/edu/uiowa/slis/incite/InCiteInstantiator.java -text
+src/main/java/edu/uiowa/slis/incite/JSoupCrawler.java -text
 src/main/java/edu/uiowa/slis/incite/MemoizedVisitedMonitor.java -text
 src/main/resources/META-INF/taglib.tld -text
 src/non-packaged-resources/InCite.clay -text
