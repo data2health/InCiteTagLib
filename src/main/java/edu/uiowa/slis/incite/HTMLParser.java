@@ -30,7 +30,7 @@ public class HTMLParser implements Runnable {
 	PropertyConfigurator.configure(args[0]);
 	mainConn = getConnection();
 
-	PreparedStatement mainStmt = mainConn.prepareStatement("select id from jsoup.document where not exists (select parse,id from extraction.parse where document.id=parse.id)");
+	PreparedStatement mainStmt = mainConn.prepareStatement("select distinct id from jsoup.segment where not exists (select * from extraction.sentence where segment.id=sentence.id) order by id");
 	ResultSet mainRS = mainStmt.executeQuery();
 	while (mainRS.next())
 	    queue.add(mainRS.getInt(1));
@@ -98,13 +98,17 @@ public class HTMLParser implements Runnable {
 
     void parseDocument(int id) throws SQLException {
 	logger.info("[" + threadID + "] " + "document: " + id);
-	PreparedStatement segStmt = conn.prepareStatement("select seqnum,content from jsoup.segment where id=? order by seqnum");
+	PreparedStatement segStmt = conn.prepareStatement("select distinct seqnum,content from jsoup.segment where id=? order by seqnum");
 	segStmt.setInt(1, id);
 	ResultSet segRS = segStmt.executeQuery();
 	while (segRS.next()) {
 	    int seqnum = segRS.getInt(1);
-	    String segString = segRS.getString(2);
-	    logger.info("[" + threadID + "] " + "\tseqnum: " + seqnum + "\t" + segString);
+	    String segString = segRS.getString(2).trim();
+	    
+	    if (segString.length() == 0)
+		continue;
+	    
+	    logger.debug("[" + threadID + "] " + "\tseqnum: " + seqnum + "\t" + segString);
 
 	    try {
 		TextSegment segment = theParser.parse(segString);

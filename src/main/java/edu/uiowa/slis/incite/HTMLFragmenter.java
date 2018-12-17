@@ -5,6 +5,7 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.Properties;
+import java.util.Vector;
 
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
@@ -24,18 +25,20 @@ public class HTMLFragmenter implements Runnable {
     static Connection mainConn = null;
     static int documentCounter = 1;
     static int maxCounter = 0;
+    static Vector<Integer> queue = new Vector<Integer>();
 
     public static void main(String[] args) throws Exception {
 	PropertyConfigurator.configure(args[0]);
 	prop_file = PropertyLoader.loadProperties("incite");
 	mainConn = getConnection();
 
-	PreparedStatement mainStmt = mainConn.prepareStatement("select max(id) from extraction.parse");
+	PreparedStatement mainStmt = mainConn.prepareStatement("select id from web.document where not exists (select parse,id from extraction.parse where document.id=parse.id)");
 	ResultSet mainRS = mainStmt.executeQuery();
 	while (mainRS.next())
-	    maxCounter = mainRS.getInt(1);
+	    queue.add(mainRS.getInt(1));
 	mainStmt.close();
-	logger.info("max document ID: " + maxCounter);
+	logger.info("queue size: " + queue.size());
+	mainConn.commit();
 	
 	logger.info("truncating fragment...");
 	mainStmt = mainConn.prepareStatement("truncate extraction.fragment");

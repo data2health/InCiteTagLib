@@ -32,26 +32,16 @@ public class QueueManager {
     
     private synchronized void loadQueue() throws SQLException {
 	logger.info("full initialization of QueueManager...");
-	int urlCount = 0;
-	PreparedStatement filterStmt = conn.prepareStatement("select domain,id,url from jsoup.document,jsoup.pattern where url~pattern and indexed is null and (suffix is null or suffix not in (select suffix from jsoup.suffix))");
+	PreparedStatement filterStmt = conn.prepareStatement("select domain from jsoup.crawler_seed order by domain");
 	ResultSet filterRS = filterStmt.executeQuery();
 	while (filterRS.next()) {
-	    String domain = filterRS.getString(1);
-	    int id = filterRS.getInt(2);
-	    String url = filterRS.getString(3);
-	    
-	    urlCount++;
-	    
-	    QueueDomain queueDomain = domainHash.get(domain);
-	    if (queueDomain == null) {
-		queueDomain = new QueueDomain(domain);
-		domainHash.put(domain, queueDomain);
-		domains.addElement(queueDomain);
-	    }
-	    queueDomain.addRequest(new QueueRequest(id, url));
+	    String domain = filterRS.getString(1);	    
+	    QueueDomain queueDomain = new QueueDomain(domain);
+	    reloads.add(queueDomain);
 	}
 	filterStmt.close();
-	logger.info("queued " + domains.size() + " domains and " + urlCount + " total URLs");
+	logger.info("queued " + domains.size() + " domains");
+	reloadQueue();
     }
     
     private synchronized boolean reloadQueue() {
@@ -64,7 +54,16 @@ public class QueueManager {
 	    int urlCount = 0;
 	    try {
 		PreparedStatement filterStmt = conn.prepareStatement(
-			"select id,url from jsoup.document,jsoup.pattern where domain = ? and url~pattern and indexed is null and  (suffix is null or suffix not in (select suffix from jsoup.suffix))");
+			"select id,url"
+			+ " from jsoup.document,jsoup.pattern"
+			+ " where domain = ?"
+			+ "  and url~pattern"
+			+ "  and url!~'/calendar/'"
+			+ "  and url!~'/login/'"
+			+ "  and url!~'/directory/listing/'"
+			+ "  and url!~'all-in-one-event-calendar'"
+			+ "  and indexed is null"
+			+ "  and (suffix is null or suffix not in (select suffix from jsoup.suffix))");
 		filterStmt.setString(1, queueDomain.domain);
 		ResultSet filterRS = filterStmt.executeQuery();
 		while (filterRS.next()) {
