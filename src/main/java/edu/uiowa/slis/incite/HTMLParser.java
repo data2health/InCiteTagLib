@@ -30,7 +30,7 @@ public class HTMLParser implements Runnable {
 	PropertyConfigurator.configure(args[0]);
 	mainConn = getConnection();
 
-	PreparedStatement mainStmt = mainConn.prepareStatement("select id from web.document where not exists (select parse,id from extraction.parse where document.id=parse.id)");
+	PreparedStatement mainStmt = mainConn.prepareStatement("select id from jsoup.document where not exists (select parse,id from extraction.parse where document.id=parse.id)");
 	ResultSet mainRS = mainStmt.executeQuery();
 	while (mainRS.next())
 	    queue.add(mainRS.getInt(1));
@@ -98,7 +98,7 @@ public class HTMLParser implements Runnable {
 
     void parseDocument(int id) throws SQLException {
 	logger.info("[" + threadID + "] " + "document: " + id);
-	PreparedStatement segStmt = conn.prepareStatement("select seqnum,sentence from web.sentence where id=? order by seqnum");
+	PreparedStatement segStmt = conn.prepareStatement("select seqnum,content from jsoup.segment where id=? order by seqnum");
 	segStmt.setInt(1, id);
 	ResultSet segRS = segStmt.executeQuery();
 	while (segRS.next()) {

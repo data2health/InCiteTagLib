@@ -12,6 +12,8 @@ src/main/java/edu/uiowa/slis/incite/BiomedicalSentenceGenerator.java -text
 src/main/java/edu/uiowa/slis/incite/ConnectionCacheMonitor.java -text
 src/main/java/edu/uiowa/slis/incite/ConnectionFactory.java -text
 src/main/java/edu/uiowa/slis/incite/ConnectionGenerator.java -text
+src/main/java/edu/uiowa/slis/incite/Fragmenter.java -text
+src/main/java/edu/uiowa/slis/incite/FragmenterThread.java -text
 src/main/java/edu/uiowa/slis/incite/HTMLCrawler.java -text
 src/main/java/edu/uiowa/slis/incite/HTMLFragmenter.java -text
 src/main/java/edu/uiowa/slis/incite/HTMLParser.java -text
@@ -19,6 +21,9 @@ src/main/java/edu/uiowa/slis/incite/InCiteDecorator.java -text
 src/main/java/edu/uiowa/slis/incite/InCiteInstantiator.java -text
 src/main/java/edu/uiowa/slis/incite/JSoupCrawler.java -text
 src/main/java/edu/uiowa/slis/incite/MemoizedVisitedMonitor.java -text
+src/main/java/edu/uiowa/slis/incite/QueueDomain.java -text
+src/main/java/edu/uiowa/slis/incite/QueueManager.java -text
+src/main/java/edu/uiowa/slis/incite/QueueRequest.java -text
 src/main/resources/META-INF/taglib.tld -text
 src/non-packaged-resources/InCite.clay -text
 src/non-packaged-resources/InCite.sql -text
