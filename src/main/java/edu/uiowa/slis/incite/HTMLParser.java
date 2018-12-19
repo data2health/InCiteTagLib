@@ -11,6 +11,11 @@ import java.util.Vector;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 
+import com.ibm.tspaces.Field;
+import com.ibm.tspaces.Tuple;
+import com.ibm.tspaces.TupleSpace;
+import com.ibm.tspaces.TupleSpaceException;
+
 import edu.uiowa.NLP_grammar.SegmentParser;
 import edu.uiowa.NLP_grammar.SimpleStanfordParserBridge;
 import edu.uiowa.NLP_grammar.TextSegment;
@@ -25,19 +30,43 @@ public class HTMLParser implements Runnable {
     static int documentCounter = 1;
     static int maxCounter = 0;
     static Vector<Integer> queue = new Vector<Integer>();
+    static boolean useTSpace = true;
+    static TupleSpace ts = null;
+    static final String host = "deep-thought.slis.uiowa.edu";
 
     public static void main(String[] args) throws Exception {
 	PropertyConfigurator.configure(args[0]);
 	mainConn = getConnection();
+	
+	if (useTSpace) {
+	    logger.info("initializing tspace...");
+	    try {
+		ts = new TupleSpace("incite", host);
+	    } catch (TupleSpaceException tse) {
+		logger.error("TSpace error: " + tse);
+	    }
+	}
 
-	PreparedStatement mainStmt = mainConn.prepareStatement("select distinct id from jsoup.segment where not exists (select * from extraction.sentence where segment.id=sentence.id) and not exists (select * from extraction.ignore where segment.id=ignore.id) order by id");
-	ResultSet mainRS = mainStmt.executeQuery();
-	while (mainRS.next())
-	    queue.add(mainRS.getInt(1));
-	mainStmt.close();
-	logger.info("queue size: " + queue.size());
-	mainConn.commit();
-
+	if (!useTSpace || (useTSpace && args.length > 1 && args[1].equals("-hub"))) {
+	    PreparedStatement mainStmt = mainConn.prepareStatement("select distinct id from jsoup.segment where not exists (select * from extraction.sentence where segment.id=sentence.id) and not exists (select * from extraction.ignore where segment.id=ignore.id) order by id");
+	    ResultSet mainRS = mainStmt.executeQuery();
+	    while (mainRS.next()) {
+		if (useTSpace) {
+		    try {
+			ts.write("parse_request", mainRS.getInt(1));
+		    } catch (Exception e) {
+			logger.error("tspace exception raised: ", e);
+		    }
+		} else
+		    queue.add(mainRS.getInt(1));
+	    }
+	    mainStmt.close();
+	    logger.info("queue size: " + queue.size());
+	    mainConn.commit();
+	    if (useTSpace)
+		return;
+	}
+	
 	int maxCrawlerThreads = Runtime.getRuntime().availableProcessors();
 	Thread[] scannerThreads = new Thread[maxCrawlerThreads];
 	for (int i = 0; i < maxCrawlerThreads; i++) {
@@ -53,10 +82,25 @@ public class HTMLParser implements Runnable {
     }
 
     static synchronized int getID() {
-	Integer result = queue.remove(0);
-	if (result != null)
-	    return result;
-	return 0;
+	if (useTSpace) {
+	    Tuple theTuple = null;
+
+	    try {
+		theTuple = ts.take("parse_request", new Field(Integer.class));
+		if (theTuple != null) {
+		    return (Integer) theTuple.getField(1).getValue();
+		}
+	    } catch (TupleSpaceException e1) {
+		// TODO Auto-generated catch block
+		e1.printStackTrace();
+	    }
+	    return 0;
+	} else {
+	    Integer result = queue.remove(0);
+	    if (result != null)
+		return result;
+	    return 0;
+	}
     }
 
     static Connection getConnection() throws Exception {
@@ -68,7 +112,7 @@ public class HTMLParser implements Runnable {
 	// props.setProperty("sslfactory", "org.postgresql.ssl.NonValidatingFactory");
 	// props.setProperty("ssl", "true");
 	// conn = DriverManager.getConnection("jdbc:postgresql://neuromancer.icts.uiowa.edu/incite", props);
-	conn = DriverManager.getConnection("jdbc:postgresql://localhost/incite", props);
+	conn = DriverManager.getConnection("jdbc:postgresql://wintermute.slis.uiowa.edu/incite", props);
 	conn.setAutoCommit(false);
 	return conn;
     }
