@@ -62,8 +62,8 @@ public class FragmenterThread implements Runnable {
     }
 
     void generate(int ID) throws Exception {
-	FragmentGenerator theGenerator = new FragmentGenerator(new InCiteDecorator(conn), new AcknowledgementInstantiator(prop_file, conn), new TemplatePromoter(conn));
-	logger.info("[" + formatter.format(threadID) + "] really fragmenting " + ID);
+	FragmentGenerator theGenerator = new FragmentGenerator(new InCiteDecorator(pmcConn), new AcknowledgementInstantiator(prop_file, conn), new TemplatePromoter(conn));
+	logger.info("[" + formatter.format(threadID) + "] fragmenting " + ID);
 	PreparedStatement stmt = conn.prepareStatement("select seqnum,sentnum,parse from extraction.parse where id = ? order by seqnum,sentnum");
 	stmt.setInt(1, ID);
 	ResultSet rs = stmt.executeQuery();

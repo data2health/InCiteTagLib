@@ -30,7 +30,7 @@ public class HTMLParser implements Runnable {
 	PropertyConfigurator.configure(args[0]);
 	mainConn = getConnection();
 
-	PreparedStatement mainStmt = mainConn.prepareStatement("select distinct id from jsoup.segment where not exists (select * from extraction.sentence where segment.id=sentence.id) order by id");
+	PreparedStatement mainStmt = mainConn.prepareStatement("select distinct id from jsoup.segment where not exists (select * from extraction.sentence where segment.id=sentence.id) and not exists (select * from extraction.ignore where segment.id=ignore.id) order by id");
 	ResultSet mainRS = mainStmt.executeQuery();
 	while (mainRS.next())
 	    queue.add(mainRS.getInt(1));
@@ -83,6 +83,10 @@ public class HTMLParser implements Runnable {
 	theParser = new SegmentParser(new biomedicalLexerMod(), new SimpleStanfordParserBridge(), new BiomedicalSentenceGenerator(conn));
 	theParser.setPunctuationLimit(20);
 	theParser.setParseCount(parseCount);
+	theParser.setPunctuationLimitNotification(true);
+//	theParser.setTokenLimit(200);
+//	theParser.setTokenLimitNotification(true);
+//	theParser.setTokenLimitSuppression(true);
     }
 
     @Override
@@ -105,7 +109,7 @@ public class HTMLParser implements Runnable {
 	    int seqnum = segRS.getInt(1);
 	    String segString = segRS.getString(2).trim();
 	    
-	    if (segString.length() == 0)
+	    if (segString.length() == 0 || segString.startsWith("[vc_") || segString.startsWith("[/vc_") || segString.startsWith("BEGIN:VCARD") || segString.startsWith("BEGIN:VCALENDAR"))
 		continue;
 	    
 	    logger.debug("[" + threadID + "] " + "\tseqnum: " + seqnum + "\t" + segString);
@@ -120,7 +124,7 @@ public class HTMLParser implements Runnable {
 		    exStmt.close();
 		}
 
-		if (theParser.isPunctuationLimitExceeded()) {
+		if (theParser.isPunctuationLimitExceeded() || theParser.isTokenLimitExceeded()) {
 		    conn.rollback();
 		    PreparedStatement exStmt = conn.prepareStatement("insert into extraction.ignore values(?)");
 		    exStmt.setInt(1, id);
