@@ -30,9 +30,11 @@ public class HTMLParser implements Runnable {
     static int documentCounter = 1;
     static int maxCounter = 0;
     static Vector<Integer> queue = new Vector<Integer>();
-    static boolean useTSpace = true;
+    static boolean useTSpace = false;
     static TupleSpace ts = null;
     static final String host = "deep-thought.slis.uiowa.edu";
+    
+    static boolean big = true;
 
     public static void main(String[] args) throws Exception {
 	PropertyConfigurator.configure(args[0]);
@@ -45,6 +47,13 @@ public class HTMLParser implements Runnable {
 	    } catch (TupleSpaceException tse) {
 		logger.error("TSpace error: " + tse);
 	    }
+	}
+	
+	if (big) {
+	    PreparedStatement mainStmt = mainConn.prepareStatement("truncate extraction.ignore");
+	    mainStmt.execute();
+	    mainStmt.close();
+	    mainConn.commit();
 	}
 
 	if (!useTSpace || (useTSpace && args.length > 1 && args[1].equals("-hub"))) {
@@ -67,7 +76,7 @@ public class HTMLParser implements Runnable {
 		return;
 	}
 	
-	int maxCrawlerThreads = Runtime.getRuntime().availableProcessors();
+	int maxCrawlerThreads = big ? 2 : Runtime.getRuntime().availableProcessors();
 	Thread[] scannerThreads = new Thread[maxCrawlerThreads];
 	for (int i = 0; i < maxCrawlerThreads; i++) {
 	    logger.info("starting thread " + i);
@@ -125,7 +134,8 @@ public class HTMLParser implements Runnable {
 	this.threadID = threadID;
 	conn = getConnection();
 	theParser = new SegmentParser(new biomedicalLexerMod(), new SimpleStanfordParserBridge(), new BiomedicalSentenceGenerator(conn));
-	theParser.setPunctuationLimit(20);
+	if (!big)
+	    theParser.setPunctuationLimit(20);
 	theParser.setParseCount(parseCount);
 	theParser.setPunctuationLimitNotification(true);
 //	theParser.setTokenLimit(200);

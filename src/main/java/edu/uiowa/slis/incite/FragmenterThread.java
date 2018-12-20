@@ -10,6 +10,11 @@ import java.util.Vector;
 
 import org.apache.log4j.Logger;
 
+import com.ibm.tspaces.Field;
+import com.ibm.tspaces.Tuple;
+import com.ibm.tspaces.TupleSpace;
+import com.ibm.tspaces.TupleSpaceException;
+
 import edu.uiowa.NLP_grammar.FragmentGenerator;
 import edu.uiowa.NLP_grammar.ParseFragment;
 import edu.uiowa.PubMedCentral.AcknowledgementDecorator;
@@ -20,6 +25,7 @@ import edu.uiowa.extraction.TemplatePromoter;
 
 public class FragmenterThread implements Runnable {
     static Logger logger = Logger.getLogger(FragmenterThread.class);
+    static final String host = "deep-thought.slis.uiowa.edu";
 
     int threadID = 0;
     Connection pmcConn = null;
@@ -28,35 +34,67 @@ public class FragmenterThread implements Runnable {
     Vector<Integer> queue = null;
     Decorator theDecorator = null;
     DecimalFormat formatter = new DecimalFormat("#00.###");
+    boolean useTSpace = false;
+    TupleSpace ts = null;
 
-    public FragmenterThread(int threadID, Vector<Integer> queue, Connection conn, LocalProperties prop_file) throws Exception {
+    public FragmenterThread(int threadID, Vector<Integer> queue, Connection conn, LocalProperties prop_file, boolean useTSpace) throws Exception {
 	this.threadID = threadID;
 	this.conn = conn;
 	this.queue = queue;
 	this.prop_file = prop_file;
+	this.useTSpace = useTSpace;
 	pmcConn = getPMCConnection();
+
+	if (useTSpace) {
+	    logger.info("initializing tspace...");
+	    try {
+		ts = new TupleSpace("incite", host);
+	    } catch (TupleSpaceException tse) {
+		logger.error("TSpace error: " + tse);
+	    }
+	}
     }
 
-    static Connection getPMCConnection() throws Exception {
+    Connection getPMCConnection() throws Exception {
 	Connection conn = null;
 	Class.forName("org.postgresql.Driver");
 	Properties props = new Properties();
-	props.setProperty("user", "eichmann");
-	props.setProperty("password", "translational");
+	props.setProperty("user", prop_file.getProperty("jdbc.user"));
+	props.setProperty("password", prop_file.getProperty("jdbc.password"));
 //	props.setProperty("sslfactory", "org.postgresql.ssl.NonValidatingFactory");
 //	props.setProperty("ssl", "true");
-//	conn = DriverManager.getConnection("jdbc:postgresql://neuromancer.icts.uiowa.edu/incite", props);
-	conn = DriverManager.getConnection("jdbc:postgresql://localhost/loki", props);
+	conn = DriverManager.getConnection("jdbc:postgresql://wintermute.slis.uiowa.edu/loki", props);
 	conn.setAutoCommit(false);
 	return conn;
     }
 
-    public void run() {
-	while (queue.size() > 0) {
+    int getID() {
+	if (useTSpace) {
+	    Tuple theTuple = null;
+
 	    try {
-		int id = queue.remove(0);
-		generate(id);
+		theTuple = ts.take("fragment_request", new Field(Integer.class));
+		if (theTuple != null) {
+		    return (Integer) theTuple.getField(1).getValue();
+		}
+	    } catch (TupleSpaceException e1) {
+		// TODO Auto-generated catch block
+		e1.printStackTrace();
+	    }
+	    return 0;
+	} else {
+	    Integer result = queue.remove(0);
+	    if (result != null)
+		return result;
+	    return 0;
+	}
+    }
+   public void run() {
+	for (int ID = getID(); ID != 0; ID = getID()) {
+	    try {
+		generate(ID);
 	    } catch (Exception e) {
+		logger.error("[" + threadID + "] " + "Exception raised: ", e);
 	    }
 	}
     }
