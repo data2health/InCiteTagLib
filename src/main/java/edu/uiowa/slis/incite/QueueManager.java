@@ -30,6 +30,16 @@ public class QueueManager {
 	}
     }
     
+    public QueueManager(Connection conn, Vector<String> domains) {
+	this.conn = conn;
+	monitorThread = new Thread(new QueueMonitor());
+	monitorThread.start();
+	for (String domain : domains) {
+	    reloads.add(new QueueDomain(domain));
+	}
+	starting = false;
+    }
+    
     private synchronized void loadQueue() throws SQLException {
 	logger.info("full initialization of QueueManager...");
 	PreparedStatement filterStmt = conn.prepareStatement("select domain from jsoup.crawler_seed order by domain");

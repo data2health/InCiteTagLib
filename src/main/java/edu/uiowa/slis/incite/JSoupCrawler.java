@@ -64,7 +64,14 @@ public class JSoupCrawler implements Runnable {
 	mainConn = getConnection();
 //	initializeSeeds();
 	
-	queueManager = new QueueManager(mainConn);
+	if (args.length == 1)
+	    queueManager = new QueueManager(mainConn);
+	else {
+	    Vector<String> domains = new Vector<String>();
+	    for (int i = 1; i < args.length; i++)
+		domains.add(args[i]);
+	    queueManager = new QueueManager(mainConn, domains);
+	}
 
 	int maxCrawlerThreads = Runtime.getRuntime().availableProcessors();
 	Thread[] scannerThreads = new Thread[maxCrawlerThreads];
