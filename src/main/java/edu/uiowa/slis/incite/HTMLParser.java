@@ -30,7 +30,7 @@ public class HTMLParser implements Runnable {
     static int documentCounter = 1;
     static int maxCounter = 0;
     static Vector<Integer> queue = new Vector<Integer>();
-    static boolean useTSpace = false;
+    static boolean useTSpace = true;
     static TupleSpace ts = null;
     static final String host = "deep-thought.slis.uiowa.edu";
     
@@ -57,7 +57,7 @@ public class HTMLParser implements Runnable {
 	}
 
 	if (!useTSpace || (useTSpace && args.length > 1 && args[1].equals("-hub"))) {
-	    PreparedStatement mainStmt = mainConn.prepareStatement("select distinct id from jsoup.segment where not exists (select * from extraction.sentence where segment.id=sentence.id) and not exists (select * from extraction.ignore where segment.id=ignore.id) order by id");
+	    PreparedStatement mainStmt = mainConn.prepareStatement("select distinct id from jsoup.segment where not exists (select * from extraction.sentence where segment.id=sentence.id) and not exists (select * from extraction.ignore where segment.id=ignore.id) order by id desc");
 	    ResultSet mainRS = mainStmt.executeQuery();
 	    while (mainRS.next()) {
 		if (useTSpace) {
