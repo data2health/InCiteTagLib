@@ -76,7 +76,7 @@ public class JSoupCrawler implements Runnable {
 	int maxCrawlerThreads = Runtime.getRuntime().availableProcessors();
 	Thread[] scannerThreads = new Thread[maxCrawlerThreads];
 	for (int i = 0; i < maxCrawlerThreads; i++) {
-	    logger.info("starting thread " + i);
+	    logger.info("[" + i + "] initiating");
 	    Thread theThread = new Thread(new JSoupCrawler(i));
 	    theThread.setPriority(Math.max(theThread.getPriority() - 2, Thread.MIN_PRIORITY));
 	    theThread.start();
@@ -105,13 +105,18 @@ public class JSoupCrawler implements Runnable {
 	QueueRequest request = null;
 	do {
 	    request = queueManager.nextRequest();
-	    if (request != null)
+	    if (request != null) {
+		logger.info("[" + threadID + "] request: " + request);
 		processURL(request);
-	    logger.info("[" + threadID + "] request: " + request);
-	    if (request == null)
+	    } else {
+		if (queueManager.completed()) {
+		    logger.info("[" + threadID + "] terminating");
+		    return;
+		}
 		try {
 		    Thread.sleep(5 * 1000);
 		} catch (InterruptedException e) { }
+	    }
 	} while (true);
     }
     

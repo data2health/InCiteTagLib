@@ -42,7 +42,7 @@ public class QueueManager {
     
     private synchronized void loadQueue() throws SQLException {
 	logger.info("full initialization of QueueManager...");
-	PreparedStatement filterStmt = conn.prepareStatement("select domain from jsoup.crawler_seed order by domain");
+	PreparedStatement filterStmt = conn.prepareStatement("select domain from jsoup.crawler_seed where domain not in (select domain from jsoup.domain_suppress) order by domain");
 	ResultSet filterRS = filterStmt.executeQuery();
 	while (filterRS.next()) {
 	    String domain = filterRS.getString(1);	    
@@ -119,10 +119,14 @@ public class QueueManager {
     
     public synchronized QueueRequest nextRequest() {
 	QueueDomain domain = nextDomain();
-	logger.info("requesting url from " + domain);
 	if (domain == null)
 	    return null;
+	logger.info("requesting url from " + domain);
 	return domain.nextRequest();
+    }
+    
+    public synchronized boolean completed() {
+	return domains.isEmpty() && reloads.isEmpty();
     }
     
     class QueueMonitor implements Runnable {
