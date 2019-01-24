@@ -108,7 +108,7 @@ public class QueueManager {
 	String buffer = null;
 	logger.info("scanning for new " + domain + " robot.txt files...");
 	try {
-	    PreparedStatement filterStmt = conn.prepareStatement("select host from jsoup.document_host,jsoup.institution where document_host.did=institution.did and domain = ? and not exists (select host from jsoup.host_disallow where host_disallow.host = document_host.host)");
+	    PreparedStatement filterStmt = conn.prepareStatement("select host from jsoup.document_host where domain = ? and not exists (select host from jsoup.host_disallow where host_disallow.host = document_host.host)");
 	    filterStmt.setString(1, domain);
 	    
 	    ResultSet filterRS = filterStmt.executeQuery();
@@ -130,13 +130,13 @@ public class QueueManager {
 
 		    while ((buffer = theReader.readLine()) != null) {
 			buffer = buffer.trim();
-		        logger.info("\tbuffer: " + buffer);
-		        if (buffer.startsWith("User-agent:")) {
-		    	if (buffer.trim().endsWith(" *"))
-		    	    inBlock = true;
-		    	else
-		    	    inBlock = false;
-		        }
+		        logger.debug("\tbuffer: " + buffer);
+			if (buffer.startsWith("User-agent:")) {
+			    if (buffer.trim().endsWith(" *"))
+				inBlock = true;
+			    else
+				inBlock = false;
+			}
 
 			if (inBlock && buffer.startsWith("Disallow:")) {
 			    String prefix = buffer.substring(9).trim();

@@ -8,7 +8,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.sql.Timestamp;
 import java.util.Hashtable;
 import java.util.Properties;
 import java.util.StringTokenizer;
@@ -21,17 +20,9 @@ import org.apache.log4j.PropertyConfigurator;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
-import org.jsoup.nodes.Node;
-import org.jsoup.nodes.TextNode;
 import org.jsoup.select.Elements;
 
-import edu.uiowa.crawling.Excluder;
 import edu.uiowa.crawling.URLRequest;
-import edu.uiowa.crawling.filters.domainFilter;
-import edu.uiowa.crawling.filters.domainPoolFilter;
-import edu.uiowa.crawling.filters.domainPrefixFilter;
-import edu.uiowa.lex.HTMLDocument;
-import edu.uiowa.lex.HTMLLink;
 
 public class JSoupCrawler implements Runnable {
     static Logger logger = Logger.getLogger(JSoupCrawler.class);
