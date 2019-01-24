@@ -1,5 +1,9 @@
 package edu.uiowa.slis.incite;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.URL;
+import java.net.URLConnection;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -28,6 +32,10 @@ public class QueueManager {
 	} catch (SQLException e) {
 	   logger.error("errur initializing QueueManager:", e);
 	}
+    }
+    
+    public QueueManager(Connection conn, String test) {
+	this.conn = conn;
     }
     
     public QueueManager(Connection conn, Vector<String> domains) {
@@ -94,6 +102,71 @@ public class QueueManager {
 		domains.add(queueDomain);
 	}
 	return starting || !domains.isEmpty();
+    }
+    
+    public void robotScan(String domain) {
+	String buffer = null;
+	logger.info("scanning for new " + domain + " robot.txt files...");
+	try {
+	    PreparedStatement filterStmt = conn.prepareStatement("select host from jsoup.document_host,jsoup.institution where document_host.did=institution.did and domain = ? and not exists (select host from jsoup.host_disallow where host_disallow.host = document_host.host)");
+	    filterStmt.setString(1, domain);
+	    
+	    ResultSet filterRS = filterStmt.executeQuery();
+	    while (filterRS.next()) {
+		String host = filterRS.getString(1);
+		logger.info("probing robots.txt for " + host);
+		URL theURL = new URL(host + "/robots.txt");
+
+		try {
+		    URLConnection theConnection = theURL.openConnection();
+		    theConnection.setConnectTimeout(30000);
+		    theConnection.setReadTimeout(30000);
+		    theConnection.setAllowUserInteraction(false);
+		    theConnection.setDoOutput(true);
+		    BufferedReader theReader = new BufferedReader(new InputStreamReader(theConnection.getInputStream()));
+
+		    boolean inBlock = false;
+		    boolean storedEntry = false;
+
+		    while ((buffer = theReader.readLine()) != null) {
+			buffer = buffer.trim();
+		        logger.info("\tbuffer: " + buffer);
+		        if (buffer.startsWith("User-agent:")) {
+		    	if (buffer.trim().endsWith(" *"))
+		    	    inBlock = true;
+		    	else
+		    	    inBlock = false;
+		        }
+
+			if (inBlock && buffer.startsWith("Disallow:")) {
+			    String prefix = buffer.substring(9).trim();
+			    if (prefix.length() == 0)
+				continue;
+			    logger.info("\tprefix: " + prefix);
+			    PreparedStatement stmt = conn.prepareStatement("insert into jsoup.host_disallow values(?,now(),?,?)");
+			    stmt.setString(1, host);
+			    stmt.setString(2, prefix);
+			    stmt.setString(3, "^" + host + prefix.replaceAll("\\?", "\\\\?").replaceAll("\\*", ".*"));
+			    stmt.execute();
+			    stmt.close();
+			    storedEntry = true;
+			}
+		    }
+		    conn.commit();
+		    if (!storedEntry)
+			throw new Exception("no entries");
+		} catch (Exception e) {
+		    logger.info("\tno robots.txt " + e);
+		    PreparedStatement stmt = conn.prepareStatement("insert into jsoup.host_disallow values(?,now(),null,null)");
+		    stmt.setString(1, host);
+		    stmt.execute();
+		    stmt.close();
+		}
+	    }
+	    filterStmt.close();
+	} catch (Exception e) {
+	    logger.error("exception raised processing robots.txt: " + e);
+	}
     }
     
     private QueueDomain nextDomain() {

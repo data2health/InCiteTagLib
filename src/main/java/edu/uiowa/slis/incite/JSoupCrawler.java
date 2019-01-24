@@ -52,7 +52,7 @@ public class JSoupCrawler implements Runnable {
 	// conn =
 	// DriverManager.getConnection("jdbc:postgresql://neuromancer.icts.uiowa.edu/incite",
 	// props);
-	conn = DriverManager.getConnection("jdbc:postgresql://localhost/incite", props);
+	conn = DriverManager.getConnection("jdbc:postgresql://wintermute.slis.uiowa.edu/incite", props);
 	conn.setAutoCommit(false);
 	// execute(conn, "set session enable_seqscan = off");
 	// execute(conn, "set session random_page_cost = 1");
@@ -64,9 +64,18 @@ public class JSoupCrawler implements Runnable {
 	mainConn = getConnection();
 //	initializeSeeds();
 	
-	if (args.length == 1)
-	    queueManager = new QueueManager(mainConn);
-	else {
+	if (args.length == 1) {
+	    queueManager = new QueueManager(mainConn,"test");
+	    PreparedStatement stmt = mainConn.prepareStatement("select domain from jsoup.crawler_seed order by 1");
+	    ResultSet rs = stmt.executeQuery();
+	    while (rs.next()) {
+		String domain = rs.getString(1);
+		logger.info("domain: " + domain);
+		queueManager.robotScan(domain);
+	    }
+	    stmt.close();
+	    return;
+	} else {
 	    Vector<String> domains = new Vector<String>();
 	    for (int i = 1; i < args.length; i++)
 		domains.add(args[i]);
