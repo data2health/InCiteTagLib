@@ -143,10 +143,11 @@ public class QueueManager {
 			    if (prefix.length() == 0)
 				continue;
 			    logger.info("\tprefix: " + prefix);
-			    PreparedStatement stmt = conn.prepareStatement("insert into jsoup.host_disallow values(?,now(),?,?)");
-			    stmt.setString(1, host);
-			    stmt.setString(2, prefix);
-			    stmt.setString(3, "^" + host + prefix.replaceAll("\\?", "\\\\?").replaceAll("\\*", ".*"));
+			    PreparedStatement stmt = conn.prepareStatement("insert into jsoup.host_disallow values(?,?,now(),?,?)");
+			    stmt.setString(1, domain);
+			    stmt.setString(2, host);
+			    stmt.setString(3, prefix);
+			    stmt.setString(4, "^" + host + prefix.replaceAll("\\?", "\\\\?").replaceAll("\\*", ".*"));
 			    stmt.execute();
 			    stmt.close();
 			    storedEntry = true;
