@@ -34,7 +34,7 @@ public class HTMLParser implements Runnable {
     static TupleSpace ts = null;
     static final String host = "deep-thought.slis.uiowa.edu";
     
-    static boolean big = true;
+    static boolean big = false;
 
     public static void main(String[] args) throws Exception {
 	PropertyConfigurator.configure(args[0]);
@@ -121,7 +121,7 @@ public class HTMLParser implements Runnable {
 	// props.setProperty("sslfactory", "org.postgresql.ssl.NonValidatingFactory");
 	// props.setProperty("ssl", "true");
 	// conn = DriverManager.getConnection("jdbc:postgresql://neuromancer.icts.uiowa.edu/incite", props);
-	conn = DriverManager.getConnection("jdbc:postgresql://wintermute.slis.uiowa.edu/incite", props);
+	conn = DriverManager.getConnection("jdbc:postgresql://localhost/incite", props);
 	conn.setAutoCommit(false);
 	return conn;
     }

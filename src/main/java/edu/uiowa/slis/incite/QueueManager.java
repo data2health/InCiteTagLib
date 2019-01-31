@@ -71,7 +71,21 @@ public class QueueManager {
 	    logger.info("reloading domain " + queueDomain);
 	    int urlCount = 0;
 	    try {
-		PreparedStatement filterStmt = conn.prepareStatement(
+		PreparedStatement truncStmt = conn.prepareStatement("truncate jsoup.staging");
+		truncStmt.execute();
+		truncStmt.close();
+		
+		PreparedStatement stagingStmt = conn.prepareStatement("insert into jsoup.staging"
+									+ " select url,id from jsoup.document,jsoup.pattern"
+									+ " where url ~ pattern"
+									+ "   and indexed is null"
+									+ "   and domain = ?"
+									+ "   and (suffix is null or suffix not in (select suffix from jsoup.suffix))");
+		stagingStmt.setString(1, queueDomain.domain);
+		stagingStmt.execute();
+		stagingStmt.close();
+		
+		PreparedStatement filterStmtorig = conn.prepareStatement(
 			"select id,url"
 			+ " from jsoup.document,jsoup.pattern"
 			+ " where domain = ?"
@@ -82,10 +96,16 @@ public class QueueManager {
 			+ "  and url!~'all-in-one-event-calendar'"
 			+ "  and indexed is null"
 			+ "  and (suffix is null or suffix not in (select suffix from jsoup.suffix))");
+		PreparedStatement filterStmt = conn.prepareStatement("select id,url from jsoup.staging"
+									+ " where not exists (select pattern from jsoup.host_disallow"
+												+ " where domain=? and url~pattern)"
+									+ "   and not exists (select pattern from jsoup.host_disallow_local"
+												+ " where (domain='*' or domain=?)"
+												+ "   and url~pattern)");
 		filterStmt.setString(1, queueDomain.domain);
+		filterStmt.setString(2, queueDomain.domain);
 		ResultSet filterRS = filterStmt.executeQuery();
 		while (filterRS.next()) {
-		    String domain = filterRS.getString(1);
 		    int id = filterRS.getInt(1);
 		    String url = filterRS.getString(2);
 		    queueDomain.addRequest(new QueueRequest(id, url));

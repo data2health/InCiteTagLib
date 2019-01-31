@@ -28,5 +28,6 @@ src/main/resources/META-INF/taglib.tld -text
 src/non-packaged-resources/InCite.clay -text
 src/non-packaged-resources/InCite.sql -text
 src/non-packaged-resources/entity.sql -text
+src/non-packaged-resources/misc.sql -text
 src/test/java/InCite/README.txt -text
 src/test/resources/README.txt -text
