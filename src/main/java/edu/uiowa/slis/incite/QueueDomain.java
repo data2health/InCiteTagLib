@@ -7,7 +7,7 @@ import org.apache.log4j.Logger;
 
 public class QueueDomain {
     static Logger logger = Logger.getLogger(QueueDomain.class);
-    int deferInterval = 1000;
+    int deferInterval = 2000;
     Date lastAccess = new Date(0);
     String domain = null;
     Vector<QueueRequest> queue = new Vector<QueueRequest>();

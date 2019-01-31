@@ -30,7 +30,7 @@ public class HTMLParser implements Runnable {
     static int documentCounter = 1;
     static int maxCounter = 0;
     static Vector<Integer> queue = new Vector<Integer>();
-    static boolean useTSpace = true;
+    static boolean useTSpace = false;
     static TupleSpace ts = null;
     static final String host = "deep-thought.slis.uiowa.edu";
     

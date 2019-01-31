@@ -21,6 +21,7 @@ src/main/java/edu/uiowa/slis/incite/InCiteDecorator.java -text
 src/main/java/edu/uiowa/slis/incite/InCiteInstantiator.java -text
 src/main/java/edu/uiowa/slis/incite/JSoupCrawler.java -text
 src/main/java/edu/uiowa/slis/incite/MemoizedVisitedMonitor.java -text
+src/main/java/edu/uiowa/slis/incite/PageIndexer.java -text
 src/main/java/edu/uiowa/slis/incite/QueueDomain.java -text
 src/main/java/edu/uiowa/slis/incite/QueueManager.java -text
 src/main/java/edu/uiowa/slis/incite/QueueRequest.java -text

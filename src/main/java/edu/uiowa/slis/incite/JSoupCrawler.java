@@ -57,16 +57,17 @@ public class JSoupCrawler implements Runnable {
 	
 	if (args.length == 1) {
 	    queueManager = new QueueManager(mainConn);
-//	    queueManager = new QueueManager(mainConn,"test");
-//	    PreparedStatement stmt = mainConn.prepareStatement("select domain from jsoup.crawler_seed order by 1");
-//	    ResultSet rs = stmt.executeQuery();
-//	    while (rs.next()) {
-//		String domain = rs.getString(1);
-//		logger.info("domain: " + domain);
-//		queueManager.robotScan(domain);
-//	    }
-//	    stmt.close();
-//	    return;
+	} else if (args.length == 2 && args[1].equals("robots")) {
+	    queueManager = new QueueManager(mainConn,"test");
+	    PreparedStatement stmt = mainConn.prepareStatement("select domain from jsoup.crawler_seed order by 1");
+	    ResultSet rs = stmt.executeQuery();
+	    while (rs.next()) {
+		String domain = rs.getString(1);
+		logger.info("domain: " + domain);
+		queueManager.robotScan(domain);
+	    }
+	    stmt.close();
+	    return;
 	} else {
 	    Vector<String> domains = new Vector<String>();
 	    for (int i = 1; i < args.length; i++)
