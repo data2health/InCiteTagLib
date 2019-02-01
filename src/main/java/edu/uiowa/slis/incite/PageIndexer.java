@@ -7,6 +7,8 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 
 import javax.servlet.jsp.JspTagException;
@@ -16,6 +18,9 @@ import org.apache.log4j.PropertyConfigurator;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
+import org.apache.lucene.facet.index.FacetFields;
+import org.apache.lucene.facet.taxonomy.CategoryPath;
+import org.apache.lucene.facet.taxonomy.directory.DirectoryTaxonomyWriter;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.store.Directory;
@@ -29,32 +34,41 @@ public class PageIndexer {
 
     public static void main(String[] args) throws IOException, ClassNotFoundException, SQLException, JspTagException {
         PropertyConfigurator.configure(args[0]);
-	wintermuteConn = getConnection("wintermute.slis.uiowa.edu");
+	wintermuteConn = getConnection("localhost");
 
 	Directory indexDir = FSDirectory.open(new File(pathPrefix + "web"));
+	Directory taxoDir = FSDirectory.open(new File(pathPrefix + "web_tax"));
 	IndexWriter indexWriter = new IndexWriter(indexDir, new IndexWriterConfig(Version.LUCENE_43, new StandardAnalyzer(org.apache.lucene.util.Version.LUCENE_43)));
+	DirectoryTaxonomyWriter taxoWriter = new DirectoryTaxonomyWriter(taxoDir);
+	FacetFields facetFields = new FacetFields(taxoWriter);
 
-	indexPages(indexWriter);
+	indexPages(indexWriter, facetFields);
+	taxoWriter.close();
 	indexWriter.close();
     }
     
     @SuppressWarnings("deprecation")
-    static void indexPages(IndexWriter indexWriter) throws IOException, SQLException {
+    static void indexPages(IndexWriter indexWriter, FacetFields facetFields) throws IOException, SQLException {
 	int count = 0;
 	logger.info("indexing CTSA hub web content...");
-	PreparedStatement stmt = wintermuteConn.prepareStatement("select id,url,title from jsoup.document where exists (select id from jsoup.segment where segment.id=document.id)");
+	PreparedStatement stmt = wintermuteConn.prepareStatement("select domain,id,url,title from jsoup.document,jsoup.institution where document.did=institution.did and  exists (select id from jsoup.segment where segment.id=document.id)");
 	ResultSet rs = stmt.executeQuery();
 
 	while (rs.next()) {
 	    count++;
-	    int ID = rs.getInt(1);
-	    String url = rs.getString(2);
-	    String title = rs.getString(3);
+	    String domain = rs.getString(1);
+	    int ID = rs.getInt(2);
+	    String url = rs.getString(3);
+	    String title = rs.getString(4);
 
 	    logger.info("document: " + ID + "\t" + title);
 
 	    Document theDocument = new Document();
+	    List<CategoryPath> paths = new ArrayList<CategoryPath>();
 
+	    paths.add(new CategoryPath("Source/CTSA web", '/'));
+	    paths.add(new CategoryPath("Entity/Web page", '/'));
+	    paths.add(new CategoryPath("CTSA/"+domain, '/'));
 	    theDocument.add(new Field("url", url, Field.Store.YES, Field.Index.NOT_ANALYZED));
 	    theDocument.add(new Field("id", ID + "", Field.Store.YES, Field.Index.NOT_ANALYZED));
 
@@ -75,6 +89,7 @@ public class PageIndexer {
 	    }
 	    segStmt.close();
 		
+	    facetFields.addFields(theDocument, paths);
 	    indexWriter.addDocument(theDocument);
 	}
 	stmt.close();
