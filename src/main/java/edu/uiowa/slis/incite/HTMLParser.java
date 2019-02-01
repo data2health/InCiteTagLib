@@ -49,12 +49,12 @@ public class HTMLParser implements Runnable {
 	    }
 	}
 	
-	if (big) {
-	    PreparedStatement mainStmt = mainConn.prepareStatement("truncate extraction.ignore");
-	    mainStmt.execute();
-	    mainStmt.close();
-	    mainConn.commit();
-	}
+//	if (big) {
+//	    PreparedStatement mainStmt = mainConn.prepareStatement("truncate extraction.ignore");
+//	    mainStmt.execute();
+//	    mainStmt.close();
+//	    mainConn.commit();
+//	}
 
 	if (!useTSpace || (useTSpace && args.length > 1 && args[1].equals("-hub"))) {
 	    PreparedStatement mainStmt = mainConn.prepareStatement("select distinct id from jsoup.segment where not exists (select * from extraction.sentence where segment.id=sentence.id) and not exists (select * from extraction.ignore where segment.id=ignore.id) order by id desc");
@@ -105,7 +105,10 @@ public class HTMLParser implements Runnable {
 	    }
 	    return 0;
 	} else {
-	    Integer result = queue.remove(0);
+	    Integer result = null;
+	    try {
+		result = queue.remove(0);
+	    } catch (Exception e) { }
 	    if (result != null)
 		return result;
 	    return 0;
@@ -138,9 +141,9 @@ public class HTMLParser implements Runnable {
 	    theParser.setPunctuationLimit(20);
 	theParser.setParseCount(parseCount);
 	theParser.setPunctuationLimitNotification(true);
-//	theParser.setTokenLimit(200);
-//	theParser.setTokenLimitNotification(true);
-//	theParser.setTokenLimitSuppression(true);
+	theParser.setTokenLimit(200);
+	theParser.setTokenLimitNotification(true);
+	theParser.setTokenLimitSuppression(true);
     }
 
     @Override
@@ -152,6 +155,7 @@ public class HTMLParser implements Runnable {
 		logger.error("[" + threadID + "] " + "Exception raised: ", e);
 	    }
 	}
+	logger.info("[" + threadID + "] terminating");
     }
 
     void parseDocument(int id) throws SQLException {
