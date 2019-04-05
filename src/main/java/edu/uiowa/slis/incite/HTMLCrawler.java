@@ -39,6 +39,7 @@ public class HTMLCrawler implements Observer {
     static Logger logger = Logger.getLogger(HTMLCrawler.class);
     static Crawler theCrawler = null;
     static Connection conn = null;
+    static LocalProperties prop_file = null;
 
     static boolean cleanup = false;
 
@@ -46,8 +47,8 @@ public class HTMLCrawler implements Observer {
 	Connection conn = null;
 	Class.forName("org.postgresql.Driver");
 	Properties props = new Properties();
-	props.setProperty("user", "eichmann");
-	props.setProperty("password", "translational");
+	props.setProperty("user", prop_file.getProperty("jdbc.user"));
+	props.setProperty("password", prop_file.getProperty("jdbc.password"));
 //	props.setProperty("sslfactory", "org.postgresql.ssl.NonValidatingFactory");
 //	props.setProperty("ssl", "true");
 //	conn = DriverManager.getConnection("jdbc:postgresql://neuromancer.icts.uiowa.edu/incite", props);
@@ -67,6 +68,7 @@ public class HTMLCrawler implements Observer {
 
     public static void main(String[] args) throws Exception {
 	PropertyConfigurator.configure(args[0]);
+	prop_file = PropertyLoader.loadProperties("incite");
 	conn = getConnection();
 	// testing(args[1]);
 	new HTMLCrawler(args);

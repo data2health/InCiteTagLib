@@ -70,8 +70,8 @@ public class HTMLFragmenter implements Runnable {
 	Connection conn = null;
 	Class.forName("org.postgresql.Driver");
 	Properties props = new Properties();
-	props.setProperty("user", "eichmann");
-	props.setProperty("password", "translational");
+	props.setProperty("user", prop_file.getProperty("jdbc.user"));
+	props.setProperty("password", prop_file.getProperty("jdbc.password"));
 //	props.setProperty("sslfactory", "org.postgresql.ssl.NonValidatingFactory");
 //	props.setProperty("ssl", "true");
 //	conn = DriverManager.getConnection("jdbc:postgresql://neuromancer.icts.uiowa.edu/incite", props);
@@ -84,8 +84,8 @@ public class HTMLFragmenter implements Runnable {
 	Connection conn = null;
 	Class.forName("org.postgresql.Driver");
 	Properties props = new Properties();
-	props.setProperty("user", "eichmann");
-	props.setProperty("password", "translational");
+	props.setProperty("user", prop_file.getProperty("jdbc.user"));
+	props.setProperty("password", prop_file.getProperty("jdbc.password"));
 //	props.setProperty("sslfactory", "org.postgresql.ssl.NonValidatingFactory");
 //	props.setProperty("ssl", "true");
 //	conn = DriverManager.getConnection("jdbc:postgresql://neuromancer.icts.uiowa.edu/incite", props);

@@ -33,11 +33,12 @@ public class HTMLParser implements Runnable {
     static boolean useTSpace = false;
     static TupleSpace ts = null;
     static final String host = "deep-thought.slis.uiowa.edu";
-    
+    static LocalProperties prop_file = null;
     static boolean big = false;
 
     public static void main(String[] args) throws Exception {
 	PropertyConfigurator.configure(args[0]);
+	prop_file = PropertyLoader.loadProperties("incite");
 	mainConn = getConnection();
 	
 	if (useTSpace) {
@@ -119,8 +120,8 @@ public class HTMLParser implements Runnable {
 	Connection conn = null;
 	Class.forName("org.postgresql.Driver");
 	Properties props = new Properties();
-	props.setProperty("user", "eichmann");
-	props.setProperty("password", "translational");
+	props.setProperty("user", prop_file.getProperty("jdbc.user"));
+	props.setProperty("password", prop_file.getProperty("jdbc.password"));
 	// props.setProperty("sslfactory", "org.postgresql.ssl.NonValidatingFactory");
 	// props.setProperty("ssl", "true");
 	// conn = DriverManager.getConnection("jdbc:postgresql://neuromancer.icts.uiowa.edu/incite", props);

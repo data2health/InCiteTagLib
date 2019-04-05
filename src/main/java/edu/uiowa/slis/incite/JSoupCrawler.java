@@ -35,8 +35,9 @@ public class JSoupCrawler implements Runnable {
 	Connection conn = null;
 	Class.forName("org.postgresql.Driver");
 	Properties props = new Properties();
-	props.setProperty("user", "eichmann");
-	props.setProperty("password", "translational");
+	LocalProperties prop_file = PropertyLoader.loadProperties("incite");
+	props.setProperty("user", prop_file.getProperty("jdbc.user"));
+	props.setProperty("password", prop_file.getProperty("jdbc.password"));
 	// props.setProperty("sslfactory",
 	// "org.postgresql.ssl.NonValidatingFactory");
 	// props.setProperty("ssl", "true");
