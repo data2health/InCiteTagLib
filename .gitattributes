@@ -23,6 +23,7 @@ src/main/java/edu/uiowa/slis/incite/JSoupCrawler.java -text
 src/main/java/edu/uiowa/slis/incite/LocalProperties.java -text
 src/main/java/edu/uiowa/slis/incite/MemoizedVisitedMonitor.java -text
 src/main/java/edu/uiowa/slis/incite/PageIndexer.java -text
+src/main/java/edu/uiowa/slis/incite/PageMapper.java -text
 src/main/java/edu/uiowa/slis/incite/PropertyLoader.java -text
 src/main/java/edu/uiowa/slis/incite/QueueDomain.java -text
 src/main/java/edu/uiowa/slis/incite/QueueManager.java -text

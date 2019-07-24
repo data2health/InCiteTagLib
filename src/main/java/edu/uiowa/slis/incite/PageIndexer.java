@@ -71,6 +71,7 @@ public class PageIndexer {
 	    paths.add(new CategoryPath("CTSA/"+domain, '/'));
 	    theDocument.add(new Field("url", url, Field.Store.YES, Field.Index.NOT_ANALYZED));
 	    theDocument.add(new Field("id", ID + "", Field.Store.YES, Field.Index.NOT_ANALYZED));
+	    theDocument.add(new Field("domain", domain, Field.Store.YES, Field.Index.NOT_ANALYZED));
 
 	    if (title == null) {
 		theDocument.add(new Field("label", url, Field.Store.YES, Field.Index.ANALYZED));
