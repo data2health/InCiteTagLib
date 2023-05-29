@@ -12,14 +12,14 @@ import edu.uiowa.crawling.URLRequest;
 import edu.uiowa.crawling.VisitedMonitor;
 
 public class MemoizedVisitedMonitor extends VisitedMonitor {
-    static Logger logger = Logger.getLogger(MemoizedVisitedMonitor.class);
-	static Hashtable<String,Integer> urlHash = new Hashtable<String, Integer>();
-	
+	static Logger logger = Logger.getLogger(MemoizedVisitedMonitor.class);
+	static Hashtable<String, Integer> urlHash = new Hashtable<String, Integer>();
+
 	Connection conn = null;
-	
+
 	public MemoizedVisitedMonitor() {
 		Thread cacheMonitorThread = new Thread(new CacheMonitor());
-		cacheMonitorThread.start();		
+		cacheMonitorThread.start();
 	}
 
 	public MemoizedVisitedMonitor(Connection conn) {
@@ -35,14 +35,15 @@ public class MemoizedVisitedMonitor extends VisitedMonitor {
 	@Override
 	public boolean visited(String urlString) {
 		int id = 0;
-		
+
 		if (urlHash.containsKey(urlString)) {
 			logger.debug("################# visited cache hit: " + urlHash.get(urlString));
 			return true;
 		}
-		
+
 		try {
-			PreparedStatement stmt = conn.prepareStatement("select id from web.document where url = ? and indexed is not null");
+			PreparedStatement stmt = conn
+					.prepareStatement("select id from web.document where url = ? and indexed is not null");
 			stmt.setString(1, urlString);
 			ResultSet rs = stmt.executeQuery();
 			while (rs.next()) {
@@ -63,27 +64,27 @@ public class MemoizedVisitedMonitor extends VisitedMonitor {
 				}
 			}
 		}
-		
+
 		if (id > 0) {
 			urlHash.put(urlString, id);
 			return true;
 		}
-		
+
 		return false;
 	}
 
 	class CacheMonitor implements Runnable {
-		int interval = 30*60*1000;
-		
+		int interval = 30 * 60 * 1000;
+
 		CacheMonitor() {
 			logger.info("initializing memoized visited monitor...");
 		}
-		
+
 		CacheMonitor(int interval) {
 			this.interval = interval;
 			logger.info("initializing memoized visited monitor...");
 		}
-		
+
 		public void run() {
 			while (true) {
 				try {
@@ -95,6 +96,6 @@ public class MemoizedVisitedMonitor extends VisitedMonitor {
 				urlHash = new Hashtable<String, Integer>();
 			}
 		}
-		
+
 	}
 }
